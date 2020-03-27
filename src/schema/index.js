@@ -22,8 +22,10 @@ export default gql`
         deleteUser(id: ID!): Boolean!
 
         createPlayer(stack: Int!, position: Int!, gameId: ID!): Boolean!
+
         updateStack(position: Int!, stack: Int!, gameId: ID!): Boolean!
         removePlayer(position: Int!, gameId: ID!): Boolean!
+        
         bet(position: Int!, amount: Int!, gameId: ID!): Boolean!
         fold(position: Int!, gameId: ID!): Boolean!
 
@@ -31,6 +33,9 @@ export default gql`
             sBlind: Int!,
             bBlind: Int!,
         ): ID!
+        joinGame(
+            gameId: ID!
+        ): Boolean!
 
         startGame(gameId: ID!): Boolean! 
     }

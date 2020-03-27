@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { withFilter } from 'apollo-server';
 import { UserInputError } from 'apollo-server-express';
 import { combineResolvers } from 'graphql-resolvers';
-import Hand from 'pokersolver';
+import { Hand } from 'pokersolver';
 import bcrypt from 'bcrypt';
 
 import pubsub, { EVENTS } from '../subscription';
@@ -19,7 +19,20 @@ const generatePasswordHash = async function (password) {
     return await bcrypt.hash(password, saltRounds);
 };
 
-const getPosition = async (players, curPos, numNext) => {
+const getAction = (players, curPos, numNext) => {
+    const livePlayers = players.filter(player => {
+        return !player.isFolded;
+    });
+
+    const numPlayers = livePlayers.length;
+
+    const curIndex = livePlayers.map(player => player.position).indexOf(curPos);
+    const nextIndex = (curIndex + numNext) % numPlayers;
+
+    return livePlayers[nextIndex].position;
+}
+
+const getPosition = (players, curPos, numNext) => {
     const numPlayers = players.length;
 
     const curIndex = players.map(player => player.position).indexOf(curPos);
@@ -29,10 +42,20 @@ const getPosition = async (players, curPos, numNext) => {
     return players[nextIndex].position;
 }
 
-const findNext = async (models, startPos, gameId) => {
+const getIndex = (players, curPos, numNext) => {
+    const numPlayers = players.length;
+
+    const curIndex = players.map(player => player.position).indexOf(curPos);
+
+    const nextIndex = (curIndex + numNext) % numPlayers;
+
+    return nextIndex;
+}
+
+const findNext = async (models, startPos, gameId, act) => {
     const players = await models.Player.find({game: gameId}).sort({position: 1});
     const game = await models.Game.findOne({_id: gameId});
-    let isAlive = false;
+    let alive = 0;
     const curBet = game.curBet;
     const numPlayers = game.numPlayers
     console.log(numPlayers);
@@ -48,11 +71,15 @@ const findNext = async (models, startPos, gameId) => {
         console.log(index);
         if(!players[index].isFolded) {
             console.log('bbb')
-            isAlive = true;
+            alive += 1;
 
             console.log(curBet);
             console.log(players[index].betAmount);
-            if(players[index].betAmount != curBet){
+            console.log(game.state)
+            console.log(index)
+            console.log(getIndex(players,game.dealer,2))
+            console.log(game.curBet);
+            if((players[index].betAmount != curBet) || (game.state == "preflop" && (index == getIndex(players,game.dealer,2)) && game.curBet == game.bBlind)){
                 console.log('next')
                 game.action = players[index].position;
                 await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -65,27 +92,36 @@ const findNext = async (models, startPos, gameId) => {
             }
         }
     }
-    console.log(isAlive)
+    console.log(alive)
 
-    if(isAlive){
+    if(act=="fold" && alive==1){
+        console.log('ccc');
+        wins(startPos, gameId, models); //with potsize update position's stack
+        return true;
+    }
+
+    if(alive>0){
         if(game.state==="river"){
             console.log("rivertime")
             const showDownplayers = players.filter(player => {
-                if (!player.isFolded){
-                    player.betAmount == curBet;
-                }
+                return !player.isFolded && player.betAmount == curBet;
             });
-            showdown(showDownplayers, gameId, models);
+            console.log(showDownplayers);
+            
+            const showDownpositions= showDownplayers.map(player => player.position);
+
+            console.log(showDownpositions);
+            showdown(showDownpositions, gameId, models);
             return true;
         }
         console.log('gotonextroudn');
         gotoNextRound(gameId, models);
         return true;
     }
-    console.log('ccc');
 
-    wins(startPos, gameId, models); //with potsize update position's stack
-    return true;
+    console.log("error - no live players")
+    return false;
+
 
     //else, person wins: update persons stack with potsize and start freshhand
 
@@ -98,11 +134,11 @@ const wins = async (position, gameId, models) => {
 
     player.stack += game.potSize;
 
-    pubsub.publish(EVENTS.PLAYER.CREATED, {
+    await player.save();
+
+    await pubsub.publish(EVENTS.PLAYER.CREATED, {
         change: { gameState: game },
     });
-    
-    await player.save();
 
     startNewHand(gameId, models); 
     return true;
@@ -112,31 +148,56 @@ const showdown = async (positions, gameId, models) => {
     const game = await models.Game.findOne({_id: gameId});
     const table = game.table;
     const players = await models.Player.find({
-        'position': { $in: positions },
+        position: { $in: positions },
     }).sort({position: 1});
 
+    console.log(players)
+
     const tableCards = table.map(card => {
-        card.number.toString() + card.suit.toString();
-    })
+        return card.number + card.suit;
+    });
+
+    console.log(tableCards);
 
     const playerHands = players.map(player => {
-        const card1 = player.hand.card1.number.toString() + player.hand.card1.suit.toString();
-        const card2 = player.hand.card2.number.toString() + player.hand.card2.suit.toString();
+        const card1 = player.hand.card1.number + player.hand.card1.suit;
+        const card2 = player.hand.card2.number + player.hand.card2.suit;
         return [card1, card2, ...tableCards];
     });
 
+    console.log(playerHands);
+
     players.forEach((player, index) => {
         player.hand = playerHands[index];
-    })
-
-    const winningCards = playerHands.slice(1).reduce(Hand.solve, playerHands[0]);
-    const winningHand = winningCards.slice(0,2);
-
-    const winner = players.filter(player => {
-        player.hand == winningHand;
     });
 
-    wins(winner.position, gameId, models);
+    console.log(playerHands);
+
+    const solvedHands = playerHands.map(hand => Hand.solve(hand));
+    console.log(solvedHands)
+    const winningCards = Hand.winners(solvedHands)
+    console.log(winningCards)
+
+    const winners = winningCards[0].cardPool.map(card => card.value + card.suit)
+
+
+    // const winningCards = playerHands.slice(1).reduce(reducer, playerHands[0]);
+    // const winningHand = winningCards.slice(0,2);
+
+    console.log(winners.sort())
+
+    const winner = players.filter(player => {
+        console.log(JSON.stringify(player.hand.sort()))
+        console.log(JSON.stringify(winners.sort()))
+        console.log(JSON.stringify(player.hand.sort())===JSON.stringify(winners.sort()))
+        console.log(JSON.stringify(player.hand.sort())==JSON.stringify(winners.sort()));
+
+       return JSON.stringify(player.hand.sort())==JSON.stringify(winners.sort());
+    });
+
+    console.log(winner);
+
+    wins(winner[0].position, gameId, models);
     return true;
 }
 
@@ -156,7 +217,7 @@ const startNewHand = async (gameId, models) => {
     
     game.potSize = 0;
     game.dealer = await getPosition(players, game.dealer, 1);
-    game.table = null;
+    game.table = [];
     game.state = "preflop";
     game.curBet = -1;
     console.log('here2');
@@ -256,14 +317,14 @@ const execState = async (state, gameId, models) => {
             players[(curIndex+1) % numPlayers].stack -= game.smallBlind;
             players[(curIndex+1) % numPlayers].betAmount = game.smallBlind;
             game.potSize += game.smallBlind;
-            game.action = await getPosition(players, dealer, 3)
+            game.action = await getAction(players, dealer, 3)
             game.curBet = game.bigBlind;
 
-            await players.forEach(async player => {
+            players.forEach(async player => {
                 await player.save();
             });
 
-            pubsub.publish(EVENTS.PLAYER.CREATED, {
+            await pubsub.publish(EVENTS.PLAYER.CREATED, {
                 change: { gameState: game },
             });
 
@@ -275,25 +336,22 @@ const execState = async (state, gameId, models) => {
             break;
             
         case "flop":
-            let card1 = game.deck.pop();
-            let card2 = game.deck.pop();
-            let card3 = game.deck.pop();
 
-            game.table.push(card1);
-            game.table.push(card2);
-            game.table.push(card3);
+            game.table.push(game.deck.pop());
+            game.table.push(game.deck.pop());
+            game.table.push(game.deck.pop());
 
             players.forEach(player => {
                 player.betAmount = -1;
             });
 
-            game.action = await getPosition(players, dealer, 1);
+            game.action = await getAction(players, dealer, 1);
             game.curBet = -1;
 
             
 
             await game.save();
-            await players.forEach(async player => {
+            players.forEach(async player => {
                 await player.save();
             });
 
@@ -305,15 +363,14 @@ const execState = async (state, gameId, models) => {
 
             break;
         case "turn":
-            card1 = game.deck.pop();
 
-            game.table.push(card1);
+            game.table.push(game.deck.pop());
 
             players.forEach(player => {
                 player.betAmount = -1;
             });
 
-            game.action = await getPosition(players, dealer, 1);
+            game.action = await getAction(players, dealer, 1);
             game.curBet = -1;
 
             
@@ -330,15 +387,14 @@ const execState = async (state, gameId, models) => {
 
             break;
         case "river":
-            card1 = game.deck.pop();
 
-            game.table.push(card1);
+            game.table.push(game.deck.pop());
 
             players.forEach(player => {
                 player.betAmount = -1;
             });
 
-            game.action = await getPosition(players, dealer, 1);
+            game.action = await getAction(players, dealer, 1);
             game.curBet = -1;
 
             await game.save();
@@ -497,20 +553,24 @@ export default {
             const player = await models.Player.findOne({position: position, game: gameId});
             const game = await models.Game.findOne({_id: gameId});
             player.stack -= amount;
-            player.betAmount = amount;
+            if (player.betAmount == -1) {
+                player.betAmount = amount;
+            } else {
+                player.betAmount += amount;
+            }
             game.potSize += amount;
-            game.curBet = amount;
+            game.curBet = player.betAmount;
 
             await player.save();
             await game.save();
 
-            findNext(models, player.position, gameId);
+            findNext(models, player.position, gameId, "bet");
             return true;
         },
 
         fold: async (
             parent,
-            { gameId },
+            { position, gameId },
             { me, models },
         ) => {
             // const user = await models.User.findOne({_id: me.id})
@@ -520,7 +580,7 @@ export default {
 
             await player.save();
 
-            findNext(models, player.position, gameId);
+            findNext(models, player.position, gameId, "fold");
             return true;
         },
 
@@ -535,7 +595,7 @@ export default {
                 bigBlind: bBlind,
                 dealer: 0,
                 numPlayers: 0,
-                table: null,
+                table: [],
             });
 
             await game.save();

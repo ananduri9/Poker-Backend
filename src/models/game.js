@@ -22,7 +22,7 @@ const gameSchema = new mongoose.Schema({
         required: true
     },
     table: {
-        type: Object,
+        type: [Object],
     },
     state: {
         type: String,
