@@ -28,6 +28,7 @@ export default gql`
         
         bet(position: Int!, amount: Int!, gameId: ID!): Boolean!
         fold(position: Int!, gameId: ID!): Boolean!
+        allIn(position: Int!, gameId: ID!): Boolean!
 
         createNewGame(
             sBlind: Int!,
@@ -63,6 +64,7 @@ export default gql`
         state: String
         curBet: Int
         action: Int
+        allIn: Boolean
 
         players: [Player!]
     }
@@ -82,6 +84,7 @@ export default gql`
         hand: Hand
         betAmount: Int
         isFolded: Boolean
+        isAllIn: Boolean
         position: Int!
 
         user: User

@@ -36,6 +36,15 @@ const gameSchema = new mongoose.Schema({
     deck: {
         type: [Object],
     },
+    allIn: {
+        type: Boolean,
+    },
+    handleAllIn : {
+        type: Boolean,
+    },
+    sidePot: {
+        type: [Object]
+    },
     players: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }],
 });
 

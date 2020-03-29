@@ -15,6 +15,12 @@ const playerSchema = new mongoose.Schema({
     isFolded: {
         type: Boolean,
     },
+    isAllIn: {
+        type: Boolean,
+    },
+    handleAllIn: {
+        type: Boolean,
+    },
     hand: {
         type: Object,
     },
