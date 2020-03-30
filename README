@@ -5,4 +5,6 @@ To be connected with React frontend: https://github.com/justinmay/poker_with_the
 To be implemented:
  * Proper error handling
  * Proper authentication for each resolver
- * More refactoring!
+ * More refactoring
+ * More testing!
+ * Host on heroku
