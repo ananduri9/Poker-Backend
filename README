@@ -1,0 +1,8 @@
+Poker Backend using Node.js with Express, Apollo Server, and MongoDB with Mongoose.
+
+To be connected with React frontend: https://github.com/justinmay/poker_with_the_boys
+
+To be implemented:
+ * Proper error handling
+ * Proper authentication for each resolver
+ * More refactoring!

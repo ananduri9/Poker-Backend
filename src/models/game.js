@@ -45,6 +45,9 @@ const gameSchema = new mongoose.Schema({
     sidePot: {
         type: [Object]
     },
+    prevPotSize: {
+        type: Number,
+    },
     players: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }],
 });
 

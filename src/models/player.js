@@ -24,6 +24,15 @@ const playerSchema = new mongoose.Schema({
     hand: {
         type: Object,
     },
+    standing: {
+        type: Boolean,
+    },
+    requestStanding: {
+        type: Boolean,
+    },
+    requestSitting: {
+        type: Boolean,
+    },
     
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     game: { type: mongoose.Schema.Types.ObjectId, ref: 'Game' }
