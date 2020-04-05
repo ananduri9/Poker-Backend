@@ -24,6 +24,9 @@ const playerSchema = new mongoose.Schema({
     hand: {
         type: Object,
     },
+    showCards: {
+        type: Object,
+    },
     standing: {
         type: Boolean,
     },

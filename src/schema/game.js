@@ -12,7 +12,7 @@ export default gql`
         ): ID!
         joinGame(
             gameId: ID!
-        ): Game
+        ): Boolean!
         startGame(gameId: ID!): Boolean! 
 
         bet(position: Int!, amount: Int!, gameId: ID!): Boolean!
@@ -21,11 +21,7 @@ export default gql`
     }
 
     extend type Subscription {
-        change(gameId: ID!): Event!
-    }
-
-    type Event {
-        gameState: Game!
+        change(gameId: ID!): Game
     }
 
     type Game {

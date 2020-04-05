@@ -72,6 +72,9 @@ const handleAllIns = async (gameId, models) => {
 
     if (numRegular == 1) {
         game.allIn = true;
+        playersAlive.forEach(player => {
+            player.showCards = player.hand;
+        })
     } 
     //should use potsize here (previous money already in pot should become part of sidepot)
     playersAlive.forEach((player, index) => {
@@ -146,8 +149,8 @@ const findNext = async (models, startPos, gameId, act) => {
 
                     await game.save();
 
-                    await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                        change: { gameState: game },
+                   await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                        change: game,
                     });
 
                     return true;
@@ -162,7 +165,7 @@ const findNext = async (models, startPos, gameId, act) => {
         await wins(game.potSize, players[aliveIndex].position, gameId, models, 1); //with potsize update position's stack
 
         await pubsub.publish(EVENTS.PLAYER.CREATED, {
-            change: { gameState: game },
+            change: game,
         });
     
         await startNewHand(gameId, models);
@@ -172,6 +175,10 @@ const findNext = async (models, startPos, gameId, act) => {
     if(alive>0){
         if (game.handleAllIn) {
             await handleAllIns(gameId, models);
+            
+            await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                change: game,
+            });
         }
         if(game.state==="river"){
             console.log("rivertime")
@@ -197,7 +204,7 @@ const findNext = async (models, startPos, gameId, act) => {
             }
 
             await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                change: { gameState: game },
+                change: game,
             });
         
             await startNewHand(gameId, models);
@@ -284,15 +291,17 @@ const showdown = async (potSize, positions, gameId, models) => {
             console.log(JSON.stringify(player.hand.sort())==JSON.stringify(winners.sort()));
 
             return JSON.stringify(player.hand.sort())==JSON.stringify(winners.sort());
-        });
+        })[0];
 
         console.log(winner);
 
         console.log('winnnnnnnnns')
         console.log(potSize)
-        console.log(winner[0])
-        console.log(winner[0].position)
+        console.log(winner.position)
         console.log(numWinners);
+
+        winner.showCards = winner.hand;
+        await winner.save();
 
         await wins(potSize, winner[0].position, gameId, models, numWinners);
 
@@ -443,7 +452,7 @@ const execState = async (state, gameId, models) => {
             await game.save();
 
             await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                change: { gameState: game },
+                change: game,
             });
 
             console.log('here6');
@@ -477,7 +486,7 @@ const execState = async (state, gameId, models) => {
             }
 
             await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                change: { gameState: game },
+                change: game,
             });
 
             if(game.allIn){
@@ -504,7 +513,7 @@ const execState = async (state, gameId, models) => {
             }
 
             await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                change: { gameState: game },
+                change: game,
             });
 
             if(game.allIn){
@@ -530,7 +539,7 @@ const execState = async (state, gameId, models) => {
             }
 
             await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                change: { gameState: game },
+                change: game,
             });
 
             if(game.allIn){
@@ -568,6 +577,11 @@ export default {
             });
 
             await game.save();
+
+            
+            await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                change: game,
+            });
             return game.id;
         },
 
@@ -577,13 +591,10 @@ export default {
             { models },
         ) => {
             const res = await models.Game.findOne({_id: gameId});
-            console.log(res);
-            if (res) {
-                console.log('here');
-                return res;
-            } else {
-                return null;
-            }
+            await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                change: game,
+            });
+            return res;
         },
 
         startGame: async (
@@ -683,11 +694,11 @@ export default {
     Subscription: {
         change: {
             subscribe: withFilter(
-                        () => pubsub.asyncIterator(EVENTS.PLAYER.CREATED),
-                        (payload, variables) => {
-                            return variables.gameId === payload.change.gameState.id
-                        }
-                      )
+                            () => pubsub.asyncIterator(EVENTS.PLAYER.CREATED),
+                            (payload, variables) => {
+                                return variables.gameId === payload.change.id
+                            }
+                        )
         },
     },
 

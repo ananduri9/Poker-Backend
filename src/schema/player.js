@@ -33,6 +33,7 @@ export default gql`
         isFolded: Boolean
         isAllIn: Boolean
         hand: Hand
+        showCards: Hand
 
         user: User
         game: Game

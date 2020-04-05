@@ -1,3 +1,5 @@
+import pubsub, { EVENTS } from '../subscription';
+
 const removePlayer = async (position, gameId, models) =>  {
     const game = await models.Game.findOne({_id: gameId});
     game.numPlayers -= 1;
@@ -47,9 +49,14 @@ export default {
             await user.save();
             await game.save();
             await player.save();
-            await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                change: { gameState: game },
-            });
+            try{
+                await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                    change: game,
+                });
+            } catch(err) {
+                console.log(err);
+                console.log('erorr!!!!');
+            }
             return true;
         },
 
