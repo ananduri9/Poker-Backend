@@ -1,15 +1,9 @@
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserInputError } from 'apollo-server-express';
 
 const createToken = async (user, secret) => {
     const {id, username, role, player } = user;
     return jwt.sign({ id, username, role, player }, secret);
-};
-
-const generatePasswordHash = async function (password) {
-    const saltRounds = 10;
-    return await bcrypt.hash(password, saltRounds);
 };
 
 export default {
@@ -35,13 +29,27 @@ export default {
             { username, password, venmo },
             { models, secret }
         ) => {
+            // Allow for admin users - fix this later!
+            let role = null;
+            if (username === "ananduri" || username === "jmay"){
+                role = 'ADMIN';
+            }
+
             const user = await new models.User({
                 username,
-                password: await generatePasswordHash(password),
+                password: await user.generatePasswordHash(password),
                 venmo: venmo,
             });
+            if (!user) {
+                throw new UserInputError('Sign up failed.');
+            }
 
-            await user.save();
+            try {
+                await user.save();
+            } catch(err) {
+                console.error(err);
+                throw Error('Failed to update models.');
+            }
 
             return { token: createToken(user, secret) }
         },
@@ -52,33 +60,40 @@ export default {
             { models, secret },
         ) => {
             const user = await models.User.findByLogin(username);
-
             if (!user) {
-                throw new UserInputError(
-                    'No user found with this login credentials.',
-                );
+                throw new UserInputError('No user found with this login credentials.');
             }
 
             const isValid = await user.validatePassword(password);
-
             if (!isValid) {
-                throw new Error('Invalid password.');
+                throw new AuthenticationError('Invalid password.');
             }
 
             return { token: createToken(user, secret) };
         },
 
         deleteUser:  async (parent, { id }, { models }) => {
+            try {
                 await models.User.findOneAndRemove({_id: id});
-                return true;
+            } catch(err) {
+                console.error(err);
+                throw new Error('Failed to delete user');
+            }
+            return true;
         },
     },
 
     User: {
         player: async (user, args, { models }) => {
-            return await models.Player.findOne({
+            const player = await models.Player.findOne({
                 user: user.id,
             });
+
+            if (!player) {
+                throw new ServerError('Failed to find valid player by user id.');
+            }
+
+            return player;
         },
     },
 };

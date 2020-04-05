@@ -43,7 +43,7 @@ const gameSchema = new mongoose.Schema({
         type: Boolean,
     },
     sidePot: {
-        type: [Object]
+        type: [Object],
     },
     prevPotSize: {
         type: Number,
