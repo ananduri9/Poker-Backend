@@ -3,6 +3,7 @@ import { gql } from 'apollo-server-express';
 export default gql`
     extend type Query {
         game(id: ID!): Game
+        getData(gameId: ID!): Boolean!
     }
 
     extend type Mutation {
@@ -12,13 +13,12 @@ export default gql`
         ): ID!
         joinGame(
             gameId: ID!
-        ): Game
+        ): Boolean!
         startGame(gameId: ID!): Boolean!
-        getData(gameId: ID!): Boolean!
 
-        bet(position: Int!, amount: Int!, gameId: ID!): Boolean!
-        fold(position: Int!, gameId: ID!): Boolean!
-        allIn(position: Int!, gameId: ID!): Boolean!
+        bet(amount: Int!, gameId: ID!): Boolean!
+        fold(gameId: ID!): Boolean!
+        allIn(gameId: ID!): Boolean!
     }
 
     extend type Subscription {

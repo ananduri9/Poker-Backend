@@ -13,6 +13,28 @@ export default {
             }
             return game;
         },
+
+        getData: async(
+            parent,
+            { gameId },
+            { models },
+        ) => {
+            const game = await models.Game.findOne({ _id: gameId });
+            if (!game) {
+                throw new UserInputError('Incorrect game id.');
+            }
+
+            try {
+                await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                    change: game,
+                });
+            } catch (err) {
+                console.error(err);
+                throw Error('Failed to publish game.');
+            }
+
+            return true;
+        },
     },
 
     Mutation: {
@@ -107,42 +129,21 @@ export default {
             return true;
         },
 
-        getData: async(
-            parent,
-            { gameId },
-            { models },
-        ) => {
-            const game = await models.Game.findOne({ _id: gameId });
-            if (!game) {
-                throw new UserInputError('Incorrect game id.');
-            }
-
-            try {
-                await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                    change: game,
-                });
-            } catch (err) {
-                console.error(err);
-                throw Error('Failed to publish game.');
-            }
-
-            return true;
-        },
-
         bet: async (
             parent,
             { position, amount, gameId },
             { me, models },
         ) => {
-            // const user = await models.User.findOne({_id: me.id})
-            // if (!user) {
-            //     throw new UserInputError('Failed to find valid user.');
-            // }
-            // const player = await models.Player.findOne({_id: user.player, game: gameId});
-            // if (!player) {
-            //     throw new UserInputError('Failed to find player user.');
-            // }
-            const player = await models.Player.findOne({ position: position, game: gameId });
+            const user = await models.User.findOne({_id: me.id})
+            if (!user) {
+                throw new UserInputError('Failed to find valid user.');
+            }
+            const player = await models.Player.findOne({_id: user.player, game: gameId});
+            if (!player) {
+                throw new UserInputError('Failed to find player user.');
+            }
+            
+            // const player = await models.Player.findOne({ position: position, game: gameId });
             const game = await models.Game.findOne({ _id: gameId });
             if (!game) {
                 throw new UserInputError('Incorrect game id.');
@@ -175,16 +176,16 @@ export default {
             { position, gameId },
             { me, models },
         ) => {
-            // const user = await models.User.findOne({_id: me.id})
-            // if (!user) {
-            //     throw new UserInputError('Failed to find valid user.');
-            // }
-            // const player = await models.Player.findOne({_id: user.player, game: gameId});
-            // if (!player) {
-            //     throw new UserInputError('Failed to find player user.');
-            // }
+            const user = await models.User.findOne({_id: me.id})
+            if (!user) {
+                throw new UserInputError('Failed to find valid user.');
+            }
+            const player = await models.Player.findOne({_id: user.player, game: gameId});
+            if (!player) {
+                throw new UserInputError('Failed to find player user.');
+            }
 
-            const player = await models.Player.findOne({ position: position, game: gameId });
+            // const player = await models.Player.findOne({ position: position, game: gameId });
             const game = await models.Game.findOne({ _id: gameId });
             if (!game) {
                 throw new UserInputError('Incorrect game id.');
@@ -220,16 +221,16 @@ export default {
             { position, gameId },
             { me, models },
         ) => {
-            // const user = await models.User.findOne({_id: me.id})
-            // if (!user) {
-            //     throw new UserInputError('Failed to find valid user.');
-            // }
-            // const player = await models.Player.findOne({_id: user.player, game: gameId});
-            // if (!player) {
-            //     throw new UserInputError('Failed to find player user.');
-            // }
+            const user = await models.User.findOne({_id: me.id})
+            if (!user) {
+                throw new UserInputError('Failed to find valid user.');
+            }
+            const player = await models.Player.findOne({_id: user.player, game: gameId});
+            if (!player) {
+                throw new UserInputError('Failed to find player user.');
+            }
 
-            const player = await models.Player.findOne({ position: position, game: gameId });
+            // const player = await models.Player.findOne({ position: position, game: gameId });
             player.isFolded = true;
 
             await player.save();

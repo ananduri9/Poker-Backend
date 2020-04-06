@@ -194,6 +194,7 @@ const findNext = async (models, startPos, gameId, act) => {
             }
 
             // Handle normal showdown between >= 2 players
+            console.log(showDownpositions);
             if (showDownplayers.length > 1) {
                 await showdown(game.potSize, showDownpositions, gameId, models);
             }
@@ -228,7 +229,8 @@ const showdown = async (potSize, positions, gameId, models) => {
     }
     const players = await models.Player.find({
         position: { $in: positions },
-        standing: false
+        standing: false,
+        game: gameId
     }).sort({ position: 1 });
     if (!players) {
         throw new UserInputError('Failed to find players. Incorrect game id.');
@@ -237,8 +239,11 @@ const showdown = async (potSize, positions, gameId, models) => {
     const tableCards = game.table.map(card => {
         return card.number + card.suit;
     });
+    console.log(tableCards);
+    console.log(players);
 
     const playerHands = players.map(player => {
+        console.log(player.hand);
         const card1 = player.hand.card1.number + player.hand.card1.suit;
         const card2 = player.hand.card2.number + player.hand.card2.suit;
         return [card1, card2, ...tableCards];
@@ -258,7 +263,19 @@ const showdown = async (potSize, positions, gameId, models) => {
             return JSON.stringify(player.hand.sort()) === JSON.stringify(winners.sort());
         });
 
-        winner.showCards = winner.hand.slice(0,2);
+        console.log('alo');
+        console.log(winner.hand)
+        const winnerHand = winner.hand.slice(0,2);
+        winner.showCards = { 
+            card1: {
+                number: winnerHand[0].substr(0,1),
+                suit: winnerHand[0].substr(1,1),
+            },
+            card2: {
+                number: winnerHand[1].substr(0,1),
+                suit: winnerHand[1].substr(1,1),
+            },
+        }
         try {
             await winner.save();
         } catch (err) {
@@ -409,9 +426,9 @@ const execState = async (state, gameId, models) => {
 
             await Promise.all(players.map(async (player) => {
                 player.betAmount = -1;
-                const card1 = game.deck.popCard();
-                const card2 = game.deck.popCard();
-                player.hand = { card1, card2 };
+                const card1 = game.deck.pop();
+                const card2 = game.deck.pop();
+                player.hand = { card1: card1, card2: card2 };
                 try {
                     await player.save();
                 } catch (err) {
@@ -420,8 +437,8 @@ const execState = async (state, gameId, models) => {
                 }
             }));
 
-            const bb = getPosition(players, dealer, 2);
-            const sb = getPosition(players, dealer, 1);
+            const bb = players[getIndex(players, dealer, 2)];
+            const sb = players[getIndex(players, dealer, 1)];
 
             bb.stack -= game.bigBlind;
             bb.betAmount = game.bigBlind;
@@ -451,9 +468,9 @@ const execState = async (state, gameId, models) => {
 
             break;
         case "flop":
-            game.table.push(game.deck.popCard());
-            game.table.push(game.deck.popCard());
-            game.table.push(game.deck.popCard());
+            game.table.push(game.deck.pop());
+            game.table.push(game.deck.pop());
+            game.table.push(game.deck.pop());
 
             await Promise.all(players.map(async (player) => {
                 player.betAmount = -1;
@@ -490,7 +507,7 @@ const execState = async (state, gameId, models) => {
 
             break;
         case "turn":
-            game.table.push(game.deck.popCard());
+            game.table.push(game.deck.pop());
 
             await Promise.all(players.map(async (player) => {
                 player.betAmount = -1;
@@ -527,7 +544,7 @@ const execState = async (state, gameId, models) => {
 
             break;
         case "river":
-            game.table.push(game.deck.popCard());
+            game.table.push(game.deck.pop());
 
             await Promise.all(players.map(async (player) => {
                 player.betAmount = -1;

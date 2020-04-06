@@ -28,9 +28,10 @@ export default class Deck {
             this.deck[i] = this.deck[j];
             this.deck[j] = temp;
         }
+        return this.deck;
     }
 
-    popCard() {
-        this.deck.pop();
-    }
+    // popCard() {
+    //     return this.deck.pop();
+    // }
 };
