@@ -34,10 +34,10 @@ userSchema.methods.validatePassword = async function(password) {
     return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.generatePasswordHash = async function (password) {
-    const saltRounds = 10;
-    return await bcrypt.hash(password, saltRounds);
-};
+// userSchema.methods.generatePasswordHash = async function (password) {
+//     const saltRounds = 10;
+//     return await bcrypt.hash(password, saltRounds);
+// };
 
 // userSchema.pre('save', async user => {
 //     if (user.username === 'jmay' || user.username === 'ananduri'){

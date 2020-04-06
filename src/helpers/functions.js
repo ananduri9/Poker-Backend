@@ -18,7 +18,7 @@ const removePlayer = async (position, gameId, models) =>  {
     try {
         await models.Player.findOneAndRemove({position: position, game: gameId});
     } catch(err) {
-        throw new Error('Failed to delete player');
+        throw new UserInputError('Failed to delete player');
     }
     
     return true;

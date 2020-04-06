@@ -1,9 +1,15 @@
 import jwt from 'jsonwebtoken';
 import { UserInputError } from 'apollo-server-express';
+import bcrypt from 'bcrypt';
 
 const createToken = async (user, secret) => {
     const {id, username, role, player } = user;
     return jwt.sign({ id, username, role, player }, secret);
+};
+
+const generatePasswordHash = async function (password) {
+    const saltRounds = 10;
+    return await bcrypt.hash(password, saltRounds);
 };
 
 export default {
@@ -37,7 +43,7 @@ export default {
 
             const user = await new models.User({
                 username,
-                password: await user.generatePasswordHash(password),
+                password: await generatePasswordHash(password),
                 venmo: venmo,
             });
             if (!user) {
@@ -77,7 +83,7 @@ export default {
                 await models.User.findOneAndRemove({_id: id});
             } catch(err) {
                 console.error(err);
-                throw new Error('Failed to delete user');
+                throw new UserInputError('Failed to delete user');
             }
             return true;
         },

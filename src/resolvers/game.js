@@ -107,6 +107,28 @@ export default {
             return true;
         },
 
+        getData: async(
+            parent,
+            { gameId },
+            { models },
+        ) => {
+            const game = await models.Game.findOne({ _id: gameId });
+            if (!game) {
+                throw new UserInputError('Incorrect game id.');
+            }
+
+            try {
+                await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                    change: game,
+                });
+            } catch (err) {
+                console.error(err);
+                throw Error('Failed to publish game.');
+            }
+
+            return true;
+        },
+
         bet: async (
             parent,
             { position, amount, gameId },

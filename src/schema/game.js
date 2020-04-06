@@ -12,8 +12,9 @@ export default gql`
         ): ID!
         joinGame(
             gameId: ID!
-        ): Boolean!
-        startGame(gameId: ID!): Boolean! 
+        ): Game
+        startGame(gameId: ID!): Boolean!
+        getData(gameId: ID!): Boolean!
 
         bet(position: Int!, amount: Int!, gameId: ID!): Boolean!
         fold(position: Int!, gameId: ID!): Boolean!

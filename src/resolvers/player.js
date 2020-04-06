@@ -31,6 +31,11 @@ export default {
                 throw new UserInputError('Failed to find valid user.');
             }
 
+            let admin = false;
+            if (game.numPlayers == 0) {
+                admin = true;
+            }
+
             const player = new models.Player({
                 stack: stack,
                 position: position,
@@ -39,6 +44,7 @@ export default {
                 standing: false,
                 requestStanding: false,
                 requestSitting: false,
+                admin: admin,
 
                 game: gameId,
                 user: me.id

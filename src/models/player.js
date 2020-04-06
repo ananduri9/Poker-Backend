@@ -36,6 +36,9 @@ const playerSchema = new mongoose.Schema({
     requestSitting: {
         type: Boolean,
     },
+    admin: {
+        type: Boolean,
+    },
     
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     game: { type: mongoose.Schema.Types.ObjectId, ref: 'Game' }

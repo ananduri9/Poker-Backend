@@ -34,6 +34,7 @@ export default gql`
         isAllIn: Boolean
         hand: Hand
         showCards: Hand
+        admin: Boolean
 
         user: User
         game: Game
