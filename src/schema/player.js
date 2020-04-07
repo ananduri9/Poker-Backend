@@ -21,6 +21,8 @@ export default gql`
             position: Int!
             gameId: ID!
         ): Boolean!
+
+        player(position: Int!, gamedId: ID!): Player
         sit(position: Int!, gameId: ID!): Boolean!
         stand(position: Int!, gameId: ID!): Boolean!
     }
