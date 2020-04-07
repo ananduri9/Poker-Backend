@@ -56,6 +56,8 @@ server.installSubscriptionHandlers(httpServer);
 
 const eraseDatabaseOnSync = false;
 
+const port = process.env.PORT || 8000;
+
 connectDb().then(async () => {
     if (eraseDatabaseOnSync) {
         await Promise.all([
@@ -65,7 +67,7 @@ connectDb().then(async () => {
         ]);
     }
 
-    httpServer.listen({ port: 8000 }, () => {
-        console.log('Apollo Server on http://localhost:8000/graphql');
+    httpServer.listen({ port }, () => {
+        console.log(`Apollo Server on http://localhost:${port}/graphql`);
     });
 });

@@ -460,7 +460,7 @@ const execState = async (state, gameId, models) => {
             game.potSize += game.bigBlind + game.smallBlind;
             game.action = getAction(players, dealer, 3);
             game.curBet = game.bigBlind;
-            game.state = "newRound";
+            game.state = "preflop";
             try {
                 await game.save();
             } catch (err) {
