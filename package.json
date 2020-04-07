@@ -5,13 +5,17 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec babel-node src/index.js",
-    "start": "node src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npm run build && node ./build/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf build && mkdir build",
+    "build-babel": "babel -d ./build ./src -s",
+    "build": "npm run clean && npm run build-babel"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/cli": "^7.0.0-beta.51",
     "@babel/core": "^7.9.0",
     "@babel/node": "^7.8.7",
     "@babel/preset-env": "^7.9.0",
@@ -21,13 +25,16 @@
     "@babel/plugin-proposal-class-properties": "^7.8.3",
     "apollo-server": "^2.11.0",
     "apollo-server-express": "^2.11.0",
+    "babel-core": "7.0.0-bridge.0",
     "bcrypt": "^4.0.1",
+    "core-js": "^3.6.4",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "graphql": "^14.6.0",
     "graphql-resolvers": "^0.4.2",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.9.5",
-    "pokersolver": "^2.1.3"
+    "pokersolver": "^2.1.3",
+    "regenerator-runtime": "^0.13.5"
   }
 }
