@@ -9,6 +9,7 @@ export default {
             if (!player) {
                 throw new UserInputError('Failed to find player. Incorrect position or game id.');
             }
+            return player;
         },
         players: async (parent, args, { models }) => {
             return models.Player.find({});
@@ -106,6 +107,14 @@ export default {
             { models },
         ) => {
             return await removePlayer(position, gameId, models);
+        },
+
+        player: async (parent, { position, gameId }, { models }) => {
+            const player = await models.Player.findOne({position: position, game: gameId});
+            if (!player) {
+                throw new UserInputError('Failed to find player. Incorrect position or game id.');
+            }
+            return player;
         },
 
         sit: async (

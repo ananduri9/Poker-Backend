@@ -9,7 +9,7 @@ const getAction = (players, curPos, numNext) => {
         return (!player.isFolded && !player.isAllIn);
     });
 
-    return getPosition(livePlayers, curPos, numNext)
+    return getPosition(livePlayers, curPos, numNext);
 }
 
 const getPosition = (players, curPos, numNext) => {
@@ -448,7 +448,7 @@ const execState = async (state, gameId, models) => {
             await sb.save();
 
             game.potSize += game.bigBlind + game.smallBlind;
-            game.action = getAction(players, dealer, 3)
+            game.action = getAction(players, dealer, 3);
             game.curBet = game.bigBlind;
             try {
                 await game.save();
