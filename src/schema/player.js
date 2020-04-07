@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-express';
 
 export default gql`
     extend type Query {
-        player(position: Int!, gamedId: ID!): Player
+        player(position: Int!, gameId: ID!): Player
         players: [Player!]
     }
 
@@ -22,7 +22,7 @@ export default gql`
             gameId: ID!
         ): Boolean!
 
-        player(position: Int!, gamedId: ID!): Player
+        player(position: Int!, gameId: ID!): Player
         sit(position: Int!, gameId: ID!): Boolean!
         stand(position: Int!, gameId: ID!): Boolean!
     }
