@@ -100,7 +100,7 @@ const handleAllIns = async (gameId, models) => {
 }
 
 const isBigBlindDuringPreflop = (game, players, index) => {
-   return (game.state == "preflop" && 
+   return (game.state == "newRound" && 
            index == getIndex(players, game.dealer, 2) && 
            game.curBet == game.bigBlind)
 }
