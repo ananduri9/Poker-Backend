@@ -1,5 +1,6 @@
-import pubsub, { EVENTS } from '../subscription';
+import { UserInputError } from 'apollo-server-express';
 
+import pubsub, { EVENTS } from '../subscription';
 import { removePlayer } from '../helpers/functions';
 
 export default {
@@ -64,7 +65,7 @@ export default {
                 await player.save();
             } catch(err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
             
             try {
@@ -73,7 +74,7 @@ export default {
                 });
             } catch(err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
             
             return true;
@@ -95,7 +96,7 @@ export default {
                 await player.save();
             } catch(err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             return true;
@@ -138,7 +139,7 @@ export default {
                 await player.save();
             } catch(err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             return true;
@@ -163,7 +164,7 @@ export default {
                 await player.save();
             } catch(err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             return true;

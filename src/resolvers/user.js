@@ -54,7 +54,7 @@ export default {
                 await user.save();
             } catch(err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             return { token: createToken(user, secret) }

@@ -1,5 +1,6 @@
 
 import { withFilter } from 'apollo-server';
+import { UserInputError } from 'apollo-server-express';
 
 import pubsub, { EVENTS } from '../subscription';
 import { startNewHand, findNext } from '../helpers/pokerLifeCycle';
@@ -30,7 +31,7 @@ export default {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             return true;
@@ -51,6 +52,7 @@ export default {
                 numPlayers: 0,
                 table: [],
                 prevPotSize: 0,
+                state: "notStarted",
             });
             if (!game) {
                 throw new UserInputError('Failed to create new game.');
@@ -60,7 +62,7 @@ export default {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             try {
@@ -69,7 +71,7 @@ export default {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             return game.id;
@@ -91,7 +93,7 @@ export default {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             return true;
@@ -122,7 +124,7 @@ export default {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             await startNewHand(gameId, models);
@@ -164,7 +166,7 @@ export default {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             findNext(models, player.position, gameId, "bet");
@@ -209,7 +211,7 @@ export default {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
             
             findNext(models, player.position, gameId, "allIn");
@@ -239,7 +241,7 @@ export default {
                 await player.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             findNext(models, player.position, gameId, "fold");

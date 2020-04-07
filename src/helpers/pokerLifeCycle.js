@@ -1,4 +1,5 @@
 import { Hand } from 'pokersolver';
+import { UserInputError } from 'apollo-server-express';
 
 import pubsub, { EVENTS } from '../subscription';
 import Deck from '../deck';
@@ -82,7 +83,7 @@ const handleAllIns = async (gameId, models) => {
             await player.save();
         } catch (err) {
             console.error(err);
-            throw Error('Failed to update models.');
+            throw new UserInputError('Failed to update models.');
         }
     }));
 
@@ -91,7 +92,7 @@ const handleAllIns = async (gameId, models) => {
         await game.save();
     } catch (err) {
         console.error(err);
-        throw Error('Failed to update models.');
+        throw new UserInputError('Failed to update models.');
     }
 
     return true;
@@ -132,7 +133,7 @@ const findNext = async (models, startPos, gameId, act) => {
                         await game.save();
                     } catch (err) {
                         console.error(err);
-                        throw Error('Failed to update models.');
+                        throw new UserInputError('Failed to update models.');
                     }
 
                     try {
@@ -141,7 +142,7 @@ const findNext = async (models, startPos, gameId, act) => {
                         });
                     } catch (err) {
                         console.error(err);
-                        throw Error('Failed to publish game.');
+                        throw new UserInputError('Failed to publish game.');
                     }
 
                     return true;
@@ -160,7 +161,7 @@ const findNext = async (models, startPos, gameId, act) => {
             });
         } catch (err) {
             console.error(err);
-            throw Error('Failed to publish game.');
+            throw new UserInputError('Failed to publish game.');
         }
 
         await startNewHand(gameId, models);
@@ -205,7 +206,7 @@ const findNext = async (models, startPos, gameId, act) => {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             // Start new hand from beginning
@@ -280,7 +281,7 @@ const showdown = async (potSize, positions, gameId, models) => {
             await winner.save();
         } catch (err) {
             console.error(err);
-            throw Error('Failed to update models.');
+            throw new UserInputError('Failed to update models.');
         }
 
         await wins(potSize, winner.position, gameId, models, numWinners);
@@ -301,7 +302,7 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
         await player.save();
     } catch (err) {
         console.error(err);
-        throw Error('Failed to update models.');
+        throw new UserInputError('Failed to update models.');
     }
     return true;
 }
@@ -344,7 +345,7 @@ const startNewHand = async (gameId, models) => {
     game.handleAllIn = false;
     game.dealer = getPosition(players, game.dealer, 1);
     game.table = [];
-    game.state = "preflop";
+    game.state = "newRound";
     game.curBet = -1;
     game.prevPotSize = 0;
 
@@ -352,7 +353,16 @@ const startNewHand = async (gameId, models) => {
         await game.save();
     } catch (err) {
         console.error(err);
-        throw Error('Failed to update models.');
+        throw new UserInputError('Failed to update models.');
+    }
+
+    try {
+        await pubsub.publish(EVENTS.PLAYER.CREATED, {
+            change: game,
+        });
+    } catch (err) {
+        console.error(err);
+        throw new UserInputError('Failed to publish game.');
     }
 
     await execState("preflop", gameId, models);
@@ -433,7 +443,7 @@ const execState = async (state, gameId, models) => {
                     await player.save();
                 } catch (err) {
                     console.error(err);
-                    throw Error('Failed to update models.');
+                    throw new UserInputError('Failed to update models.');
                 }
             }));
 
@@ -450,11 +460,12 @@ const execState = async (state, gameId, models) => {
             game.potSize += game.bigBlind + game.smallBlind;
             game.action = getAction(players, dealer, 3);
             game.curBet = game.bigBlind;
+            game.state = "newRound";
             try {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             try {
@@ -463,7 +474,7 @@ const execState = async (state, gameId, models) => {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             break;
@@ -478,7 +489,7 @@ const execState = async (state, gameId, models) => {
                     await player.save();
                 } catch (err) {
                     console.error(err);
-                    throw Error('Failed to update models.');
+                    throw new UserInputError('Failed to update models.');
                 }
             }));
 
@@ -489,7 +500,7 @@ const execState = async (state, gameId, models) => {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             try {
@@ -498,7 +509,7 @@ const execState = async (state, gameId, models) => {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             if (game.allIn) {
@@ -515,7 +526,7 @@ const execState = async (state, gameId, models) => {
                     await player.save();
                 } catch (err) {
                     console.error(err);
-                    throw Error('Failed to update models.');
+                    throw new UserInputError('Failed to update models.');
                 }
             }));
 
@@ -526,7 +537,7 @@ const execState = async (state, gameId, models) => {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             try {
@@ -535,7 +546,7 @@ const execState = async (state, gameId, models) => {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             if (game.allIn) {
@@ -552,7 +563,7 @@ const execState = async (state, gameId, models) => {
                     await player.save();
                 } catch (err) {
                     console.error(err);
-                    throw Error('Failed to update models.');
+                    throw new UserInputError('Failed to update models.');
                 }
             }));
 
@@ -563,7 +574,7 @@ const execState = async (state, gameId, models) => {
                 await game.save();
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to update models.');
+                throw new UserInputError('Failed to update models.');
             }
 
             try {
@@ -572,7 +583,7 @@ const execState = async (state, gameId, models) => {
                 });
             } catch (err) {
                 console.error(err);
-                throw Error('Failed to publish game.');
+                throw new UserInputError('Failed to publish game.');
             }
 
             if (game.allIn) {

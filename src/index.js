@@ -32,9 +32,11 @@ const server = new ApolloServer({
     typeDefs: schema,
     resolvers,
     context: async ({ req, connection }) => {
+        const me = await getMe(req);
         if (connection) {
             return {
                 models,
+                me,
             };
         }
         

@@ -1,3 +1,5 @@
+import { UserInputError } from 'apollo-server-express';
+
 const removePlayer = async (position, gameId, models) =>  {
     const game = await models.Game.findOne({_id: gameId});
     if (!game) {
@@ -12,7 +14,7 @@ const removePlayer = async (position, gameId, models) =>  {
     try {
         await game.save();
     } catch(err) {
-        throw Error('Failed to update models.');
+        throw new UserInputError('Failed to update models.');
     }
 
     try {
