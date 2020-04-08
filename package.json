@@ -19,13 +19,14 @@
     "@babel/core": "^7.9.0",
     "@babel/node": "^7.8.7",
     "@babel/preset-env": "^7.9.0",
+    "@babel/register": "^7.0.0",
+    "@babel/runtime": "^7.0.0",
     "nodemon": "^2.0.2"
   },
   "dependencies": {
     "@babel/plugin-proposal-class-properties": "^7.8.3",
     "apollo-server": "^2.11.0",
     "apollo-server-express": "^2.11.0",
-    "babel-core": "7.0.0-bridge.0",
     "bcrypt": "^4.0.1",
     "core-js": "^3.6.4",
     "dotenv": "^8.2.0",
