@@ -33,6 +33,8 @@ const getMe = async req => {
 const server = new ApolloServer({
     typeDefs: schema,
     resolvers,
+    introspection: true,
+    playground: true,
     context: async ({ req, connection }) => {
         if (connection) {
             return {
