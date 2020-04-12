@@ -35,14 +35,15 @@ export default gql`
         table: [Card]
         state: String 
         curBet: Int
+        winner: Int
 
         action: Int
         players: [Player!]
     }
 
     type Card {
-        number: String!
-        suit: String!
+        number: String
+        suit: String
     }
 `;
 

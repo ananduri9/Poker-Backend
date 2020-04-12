@@ -86,7 +86,7 @@ export default {
             { models },
         ) => {
             const player = await models.Player.findOne({position: position, game: gameId});
-            if (!game) {
+            if (!player) {
                 throw new UserInputError('Incorrect game id or position.');
             }
 

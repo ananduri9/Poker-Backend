@@ -53,6 +53,7 @@ export default {
                 table: [],
                 prevPotSize: 0,
                 state: "notStarted",
+                winner: -1,
             });
             if (!game) {
                 throw new UserInputError('Failed to create new game.');
@@ -178,6 +179,7 @@ export default {
             { position, gameId },
             { me, models },
         ) => {
+            console.log('ALLINNNNN');
             const user = await models.User.findOne({_id: me.id})
             if (!user) {
                 throw new UserInputError('Failed to find valid user.');
@@ -192,9 +194,7 @@ export default {
             if (!game) {
                 throw new UserInputError('Incorrect game id.');
             }
-
-            player.isAllIn = true;
-            player.stack = 0;
+ 
             if (player.betAmount == -1) {
                 player.betAmount = player.stack;
             } else {
@@ -204,6 +204,9 @@ export default {
             game.curBet = player.betAmount;
             game.potSize += player.stack;
             game.handleAllIn = true;
+
+            player.isAllIn = true;
+            player.stack = 0;
 
             
             try {
@@ -234,8 +237,6 @@ export default {
 
             // const player = await models.Player.findOne({ position: position, game: gameId });
             player.isFolded = true;
-
-            await player.save();
 
             try {
                 await player.save();

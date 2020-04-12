@@ -43,7 +43,7 @@ export default gql`
     }
 
     type Hand {
-        card1: Card!
-        card2: Card!
+        card1: Card
+        card2: Card
     }
 `

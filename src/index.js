@@ -1,15 +1,16 @@
 import "core-js/stable";
 import "regenerator-runtime/runtime";
-import 'dotenv/config';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import http from 'http';
 import express from 'express';
+import 'dotenv/config'
 import { ApolloServer, AuthenticationError } from 'apollo-server-express';
 
 import schema from './schema';
 import resolvers from './resolvers';
 import models, { connectDb } from './models';
+
 
 
 const app = express();
@@ -58,12 +59,13 @@ server.applyMiddleware({ app, path: '/graphql' });
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 
+const isTest = process.env.NODE_ENV == 'test'
 const eraseDatabaseOnSync = false;
 
 const port = process.env.PORT || 8000;
 
 connectDb().then(async () => {
-    if (eraseDatabaseOnSync) {
+    if (isTest || eraseDatabaseOnSync) {
         await Promise.all([
             models.User.deleteMany({}),
             models.Player.deleteMany({}),

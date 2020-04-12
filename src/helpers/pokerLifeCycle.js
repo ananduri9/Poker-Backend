@@ -5,6 +5,8 @@ import pubsub, { EVENTS } from '../subscription';
 import Deck from '../deck';
 import { removePlayer } from './functions';
 
+const snooze = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 const getAction = (players, curPos, numNext) => {
     const livePlayers = players.filter(player => {
         return (!player.isFolded && !player.isAllIn);
@@ -32,11 +34,18 @@ const handleAllIns = async (gameId, models) => {
     if (!players) {
         throw new UserInputError('Failed to find players. Incorrect game id.');
     }
+    console.log('players');
+    console.log(players);
 
     const playersAlive = players.filter(player => (!player.isFolded && !players.handleAllIn));
     const playersAllIn = playersAlive.filter(player => (player.isAllIn && !players.handleAllIn));
 
-    playersAlive.sort((a, b) => a.stack - b.stack); // Sort alive playersin ascending order of stack size
+    console.log('playersAlive')
+    console.log(playersAlive);
+    console.log('playersAllIn')
+    console.log(playersAllIn)
+
+    playersAlive.sort((a, b) => a.betAmount - b.betAmount); // Sort alive playersin ascending order of stack size
     const len = playersAlive.length;
 
     if (playersAlive.length == playersAllIn.length) {
@@ -56,6 +65,9 @@ const handleAllIns = async (gameId, models) => {
         }
     });
 
+    console.log('numRegular');
+    console.log(numRegular);
+
     if (numRegular == 1) {
         game.allIn = true; // Proceed all the way to show down and show cards
         playersAlive.forEach(player => {
@@ -64,15 +76,21 @@ const handleAllIns = async (gameId, models) => {
     }
 
     let prevBetAmount = 0;
+    console.log('playersAlive')
+    console.log(playersAlive);
     // Create side pots and push onto game stack
     playersAlive.forEach((player, index) => {
         if (player.isAllIn) {
-            let sidePotSize = (player.betAmount - prevBetAmount) * (len - index ) + game.prevPotSize;
+            let sidePotSize = (player.betAmount - prevBetAmount) * (len - index) + game.prevPotSize;
             game.sidePot.push({
                 size: sidePotSize,
                 positions: playersAlive.slice(index).map(player => player.position),
             });
+            console.log('sidepot');
+            console.log(game.sidePot);
             game.potSize -= sidePotSize;
+            console.log('potsize');
+            console.log(game.potSize);
             prevBetAmount = player.betAmount;
             game.prevPotSize = 0;
         }
@@ -100,7 +118,7 @@ const handleAllIns = async (gameId, models) => {
 }
 
 const isBigBlindDuringPreflop = (game, players, index) => {
-   return (game.state == "newRound" && 
+   return (game.state == "preflop" && 
            index == getIndex(players, game.dealer, 2) && 
            game.curBet == game.bigBlind)
 }
@@ -117,36 +135,13 @@ const findNext = async (models, startPos, gameId, act) => {
 
     let alive = 0;
     let aliveIndex;
-    // Check if there is another person to act in this round
     for (let i = 1; i < players.length; i++) {
         const index = getIndex(players, startPos, i);
 
         if (!players[index].isFolded) {
             alive += 1; // Keep track of number not folded
-
             if (!players[index].isAllIn) {
                 aliveIndex = index; // Keep track of last person alive
-
-                if ((players[index].betAmount != game.curBet) || isBigBlindDuringPreflop(game, players, index)) {
-                    game.action = players[index].position; // Set action to next player to act
-                    try {
-                        await game.save();
-                    } catch (err) {
-                        console.error(err);
-                        throw new UserInputError('Failed to update models.');
-                    }
-
-                    try {
-                        await pubsub.publish(EVENTS.PLAYER.CREATED, {
-                            change: game,
-                        });
-                    } catch (err) {
-                        console.error(err);
-                        throw new UserInputError('Failed to publish game.');
-                    }
-
-                    return true;
-                }
             }
         }
     }
@@ -154,6 +149,7 @@ const findNext = async (models, startPos, gameId, act) => {
     // If everyone else is folded, this person wins
     if (act == "fold" && alive == 1) {
         await wins(game.potSize, players[aliveIndex].position, gameId, models, 1);
+        game.winner = players[aliveIndex].position;
 
         try {
             await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -164,8 +160,39 @@ const findNext = async (models, startPos, gameId, act) => {
             throw new UserInputError('Failed to publish game.');
         }
 
+        await snooze(2000);
+
         await startNewHand(gameId, models);
         return true;
+    }
+
+    // Check if there is another person to act in this round
+    for (let i = 1; i < players.length; i++) {
+        const index = getIndex(players, startPos, i);
+
+        if (!players[index].isFolded && !players[index].isAllIn) {
+
+            if ((players[index].betAmount != game.curBet) || isBigBlindDuringPreflop(game, players, index)) {
+                game.action = players[index].position; // Set action to next player to act
+                try {
+                    await game.save();
+                } catch (err) {
+                    console.error(err);
+                    throw new UserInputError('Failed to update models.');
+                }
+
+                try {
+                    await pubsub.publish(EVENTS.PLAYER.CREATED, {
+                        change: game,
+                    });
+                } catch (err) {
+                    console.error(err);
+                    throw new UserInputError('Failed to publish game.');
+                }
+
+                return true;
+            }
+        }
     }
 
     if (alive > 0) {
@@ -187,9 +214,13 @@ const findNext = async (models, startPos, gameId, act) => {
 
             // Handle all in side pots
             for (const sidePot of game.sidePot) {
-                console.log('sidepot');
+                console.log('sidepot2');
                 console.log(sidePot);
                 let { size, positions } = sidePot;
+                console.log('size')
+                console.log(size)
+                console.log('positions')
+                console.log(positions)
                 await showdown(size, positions, gameId, models);
                 console.log(game.potSize);
             }
@@ -208,6 +239,10 @@ const findNext = async (models, startPos, gameId, act) => {
                 console.error(err);
                 throw new UserInputError('Failed to publish game.');
             }
+
+            console.log('About to snooze without halting the event loop...');
+            await snooze(2000);
+            console.log('done!');
 
             // Start new hand from beginning
             await startNewHand(gameId, models);
@@ -295,11 +330,18 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
     if (!player) {
         throw new UserInputError('Failed to find player. Invalid position.');
     }
+    const game = await models.Game.findOne({ _id: gameId });
+    if (!game) {
+        throw new UserInputError('Incorrect game id.');
+    }
+
+    game.winner = position;
 
     player.stack += Math.floor(potSize / numWinners);
 
     try {
         await player.save();
+        await game.save();
     } catch (err) {
         console.error(err);
         throw new UserInputError('Failed to update models.');
@@ -317,12 +359,7 @@ const startNewHand = async (gameId, models) => {
         throw new UserInputError('Incorrect game id.');
     }
 
-    // Remove player if stack went to 0
-    for (const player of players) {
-        if (player.stack <= 0) {
-            await removePlayer(player.position, gameId, models);
-        }
-    }
+    game.deck = (new Deck).shuffle();
 
     await Promise.all(players.map(async (player) => {
         if (player.requestStanding) {
@@ -336,8 +373,24 @@ const startNewHand = async (gameId, models) => {
         player.handleAllIn = false;
         player.hand = null;
         player.showCards = null;
-        await player.save();
+        player.betAmount = -1;
+        const card1 = game.deck.pop();
+        const card2 = game.deck.pop();
+        player.hand = { card1: card1, card2: card2 };
+        try {
+            await player.save();
+        } catch (err) {
+            console.error(err);
+            throw new UserInputError('Failed to update models.');
+        }
     }));
+
+    // Remove player if stack went to 0
+    // for (const player of players) {
+    //     if (player.stack <= 0) {
+    //         await removePlayer(player.position, gameId, models);
+    //     }
+    // }
 
     game.potSize = 0;
     game.sidePot = [];
@@ -348,6 +401,7 @@ const startNewHand = async (gameId, models) => {
     game.state = "newRound";
     game.curBet = -1;
     game.prevPotSize = 0;
+    game.winner = -1;
 
     try {
         await game.save();
@@ -365,7 +419,7 @@ const startNewHand = async (gameId, models) => {
         throw new UserInputError('Failed to publish game.');
     }
 
-    await execState("preflop", gameId, models);
+    await gotoNextRound(gameId, models);
     return true;
 }
 
@@ -376,6 +430,15 @@ const gotoNextRound = async (gameId, models) => {
     }
 
     switch (game.state) {
+        case "newRound":
+            await models.Game.updateOne(
+                { _id: gameId },
+                {
+                    state: "preflop",
+                }
+            );
+            await execState("preflop", gameId, models);
+            break;
         case "preflop":
             await models.Game.updateOne(
                 { _id: gameId },
@@ -432,20 +495,6 @@ const execState = async (state, gameId, models) => {
 
     switch (state) {
         case "preflop":
-            game.deck = (new Deck).shuffle();
-
-            await Promise.all(players.map(async (player) => {
-                player.betAmount = -1;
-                const card1 = game.deck.pop();
-                const card2 = game.deck.pop();
-                player.hand = { card1: card1, card2: card2 };
-                try {
-                    await player.save();
-                } catch (err) {
-                    console.error(err);
-                    throw new UserInputError('Failed to update models.');
-                }
-            }));
 
             const bb = players[getIndex(players, dealer, 2)];
             const sb = players[getIndex(players, dealer, 1)];
@@ -460,7 +509,6 @@ const execState = async (state, gameId, models) => {
             game.potSize += game.bigBlind + game.smallBlind;
             game.action = getAction(players, dealer, 3);
             game.curBet = game.bigBlind;
-            game.state = "preflop";
             try {
                 await game.save();
             } catch (err) {
@@ -513,6 +561,7 @@ const execState = async (state, gameId, models) => {
             }
 
             if (game.allIn) {
+                await snooze(2000);
                 gotoNextRound(gameId, models);
             }
 
@@ -550,6 +599,7 @@ const execState = async (state, gameId, models) => {
             }
 
             if (game.allIn) {
+                await snooze(2000);
                 gotoNextRound(gameId, models);
             }
 
