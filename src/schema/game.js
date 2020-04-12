@@ -47,9 +47,6 @@ export default gql`
     }
 `;
 
-//get rid of position for bet, fold, and allin in actual
-//implementation.
-
 //can make card number and suit enums in the future
 
 //state should be an enum of {preflop, flop, turn, river}

@@ -45,7 +45,15 @@ const handleAllIns = async (gameId, models) => {
     console.log('playersAllIn')
     console.log(playersAllIn)
 
-    playersAlive.sort((a, b) => a.betAmount - b.betAmount); // Sort alive playersin ascending order of stack size
+    playersAlive.sort((a, b) => {  // Sort alive playersin ascending order of bet amount or stack size
+        if(a.stack - b.stack == 0) {
+            return a.betAmount - b.betAmount
+        } else {
+            return a.stack - b.stack
+        }
+    });
+
+
     const len = playersAlive.length;
 
     if (playersAlive.length == playersAllIn.length) {
@@ -91,7 +99,7 @@ const handleAllIns = async (gameId, models) => {
             game.potSize -= sidePotSize;
             console.log('potsize');
             console.log(game.potSize);
-            prevBetAmount = player.betAmount;
+            prevBetAmount += player.betAmount;
             game.prevPotSize = 0;
         }
     });
