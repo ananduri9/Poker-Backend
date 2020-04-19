@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "NODE_ENV=dev nodemon --exec babel-node src/index.js",
-    "start": "npm run build && node ./build/index.js",
+    "start": "npm run build && NODE_ENV=production node ./build/index.js",
     "test-server": "NODE_ENV=test npm start",
     "test": "mocha --require @babel/register 'src/**/*.spec.js'",
     "clean": "rm -rf build && mkdir build",

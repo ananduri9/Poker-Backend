@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import http from 'http';
 import express from 'express';
 import 'dotenv/config'
+import path from 'path';
 import { ApolloServer, AuthenticationError } from 'apollo-server-express';
 
 import schema from './schema';
@@ -12,11 +13,18 @@ import resolvers from './resolvers';
 import models, { connectDb } from './models';
 
 
-
 const app = express();
+console.log('outside');
+console.log(process.env.NODE_ENV)
 
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static('client/build'));
+    console.log('productionijiji');
+    const buildPath = path.join(__dirname, '../client/build/');
+    console.log(buildPath)
+    app.use(express.static(buildPath));
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(buildPath, 'index.html'));
+    });
 } else {
     app.use(cors());
 }
