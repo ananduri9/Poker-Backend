@@ -87,9 +87,10 @@ const handleAllIns = async (gameId, models) => {
     console.log('playersAlive')
     console.log(playersAlive);
     // Create side pots and push onto game stack
-    playersAlive.forEach((player, index) => {
+    let index = 0;
+    for (const player of playersAlive) {
         if (player.isAllIn) {
-            let sidePotSize = (player.betAmount - prevBetAmount) * (len - index) + game.prevPotSize;
+            let sidePotSize = (player.betAmount - prevBetAmount) * (len - index) + game.prevPotSize; //shaky logic?
             game.sidePot.push({
                 size: sidePotSize,
                 positions: playersAlive.slice(index).map(player => player.position),
@@ -102,7 +103,8 @@ const handleAllIns = async (gameId, models) => {
             prevBetAmount += player.betAmount;
             game.prevPotSize = 0;
         }
-    });
+        index += 1;
+    };
 
     await Promise.all(playersAlive.map(async (player) => {
         try {
@@ -274,6 +276,7 @@ const showdown = async (potSize, positions, gameId, models) => {
     const players = await models.Player.find({
         position: { $in: positions },
         standing: false,
+        isFolded: false,
         game: gameId
     }).sort({ position: 1 });
     if (!players) {
@@ -343,6 +346,10 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
         throw new UserInputError('Incorrect game id.');
     }
 
+    console.log('position of winner')
+    console.log(position)
+    console.log(potSize)
+
     game.winner = position;
 
     player.stack += Math.floor(potSize / numWinners);
@@ -394,11 +401,11 @@ const startNewHand = async (gameId, models) => {
     }));
 
     // Remove player if stack went to 0
-    // for (const player of players) {
-    //     if (player.stack <= 0) {
-    //         await removePlayer(player.position, gameId, models);
-    //     }
-    // }
+    for (const player of players) {
+        if (player.stack <= 0) {
+            await removePlayer(player.position, gameId, models);
+        }
+    }
 
     game.potSize = 0;
     game.sidePot = [];

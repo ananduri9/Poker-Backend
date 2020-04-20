@@ -1,8 +1,10 @@
+import fs from 'fs';
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import http from 'http';
+import https from 'https';
 import express from 'express';
 import 'dotenv/config'
 import path from 'path';
@@ -12,6 +14,16 @@ import schema from './schema';
 import resolvers from './resolvers';
 import models, { connectDb } from './models';
 
+const privateKey  = fs.readFileSync('sslcert/selfsigned.key', 'utf8');
+const certificate = fs.readFileSync('sslcert/selfsigned.crt', 'utf8');
+const credentials = {key: privateKey, cert: certificate};
+
+const forceSsl = function (req, res, next) {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect(['https://', req.get('Host'), req.url].join(''));
+    }
+    return next();
+};
 
 const app = express();
 console.log('outside');
@@ -22,6 +34,7 @@ if (process.env.NODE_ENV === 'production') {
     const buildPath = path.join(__dirname, '../client/build/');
     console.log(buildPath)
     app.use(express.static(buildPath));
+    // app.use(forceSsl)
     app.get('/', (req, res) => {
         res.sendFile(path.join(buildPath, 'index.html'));
     });
@@ -68,8 +81,8 @@ const server = new ApolloServer({
 
 server.applyMiddleware({ app, path: '/graphql' });
 
-const httpServer = http.createServer(app);
-server.installSubscriptionHandlers(httpServer);
+const httpsServer = https.createServer(credentials, app);
+server.installSubscriptionHandlers(httpsServer);
 
 const isTest = process.env.NODE_ENV == 'test'
 const eraseDatabaseOnSync = false;
@@ -85,7 +98,7 @@ connectDb().then(async () => {
         ]);
     }
 
-    httpServer.listen({ port }, () => {
-        console.log(`Apollo Server on http://localhost:${port}/graphql`);
+    httpsServer.listen({ port }, () => {
+        console.log(`Apollo Server on https://localhost:${port}/graphql`);
     });
 });
