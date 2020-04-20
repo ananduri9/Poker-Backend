@@ -147,12 +147,9 @@ const findNext = async (models, startPos, gameId, act) => {
     let aliveIndex;
     for (let i = 1; i < players.length; i++) {
         const index = getIndex(players, startPos, i);
-
         if (!players[index].isFolded) {
             alive += 1; // Keep track of number not folded
-            if (!players[index].isAllIn) {
-                aliveIndex = index; // Keep track of last person alive
-            }
+            aliveIndex = index; // Keep track of last person alive
         }
     }
 
