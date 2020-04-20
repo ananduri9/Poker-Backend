@@ -26,7 +26,7 @@ const credentials = {key: privateKey, cert: certificate};
 // };
 
 const app = express();
-console.log('outside');
+console.log('outsided');
 console.log(process.env.NODE_ENV)
 
 if (process.env.NODE_ENV === 'production') {

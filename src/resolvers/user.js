@@ -47,6 +47,7 @@ export default {
                 venmo: venmo,
             });
             if (!user) {
+                console.log('user failed')
                 throw new UserInputError('Sign up failed.');
             }
 
