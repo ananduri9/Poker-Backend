@@ -18,12 +18,12 @@ const privateKey  = fs.readFileSync('sslcert/selfsigned.key', 'utf8');
 const certificate = fs.readFileSync('sslcert/selfsigned.crt', 'utf8');
 const credentials = {key: privateKey, cert: certificate};
 
-const forceSsl = function (req, res, next) {
-    if (req.headers['x-forwarded-proto'] !== 'https') {
-        return res.redirect(['https://', req.get('Host'), req.url].join(''));
-    }
-    return next();
-};
+// const forceSsl = function (req, res, next) {
+//     if (req.headers['x-forwarded-proto'] !== 'https') {
+//         return res.redirect(['https://', req.get('Host'), req.url].join(''));
+//     }
+//     return next();
+// };
 
 const app = express();
 console.log('outside');
@@ -81,8 +81,11 @@ const server = new ApolloServer({
 
 server.applyMiddleware({ app, path: '/graphql' });
 
-const httpsServer = https.createServer(credentials, app);
-server.installSubscriptionHandlers(httpsServer);
+// const httpsServer = https.createServer(credentials, app);
+// server.installSubscriptionHandlers(httpsServer);
+
+const httpServer = http.createServer(credentials, app);
+server.installSubscriptionHandlers(httpServer);
 
 const isTest = process.env.NODE_ENV == 'test'
 const eraseDatabaseOnSync = false;
@@ -98,7 +101,7 @@ connectDb().then(async () => {
         ]);
     }
 
-    httpsServer.listen({ port }, () => {
-        console.log(`Apollo Server on https://localhost:${port}/graphql`);
+    httpServer.listen({ port }, () => {
+        console.log(`Apollo Server on http://localhost:${port}/graphql`);
     });
 });
