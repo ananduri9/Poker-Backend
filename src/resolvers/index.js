@@ -1,5 +1,5 @@
-import userResolvers from './user';
-import playerResolvers from './player';
-import gameResolvers from './game';
+import userResolvers from './user'
+import playerResolvers from './player'
+import gameResolvers from './game'
 
-export default [userResolvers, playerResolvers, gameResolvers];
+export default [userResolvers, playerResolvers, gameResolvers]

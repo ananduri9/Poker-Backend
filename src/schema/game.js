@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express';
+import { gql } from 'apollo-server-express'
 
 export default gql`
     extend type Query {
@@ -45,8 +45,8 @@ export default gql`
         number: String
         suit: String
     }
-`;
+`
 
-//can make card number and suit enums in the future
+// can make card number and suit enums in the future
 
-//state should be an enum of {preflop, flop, turn, river}
+// state should be an enum of {preflop, flop, turn, river}

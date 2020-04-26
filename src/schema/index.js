@@ -1,8 +1,8 @@
-import { gql } from 'apollo-server-express';
+import { gql } from 'apollo-server-express'
 
-import userSchema from './user';
-import gameSchema from './game';
-import playerSchema from './player';
+import userSchema from './user'
+import gameSchema from './game'
+import playerSchema from './player'
 
 const linkSchema = gql`
     type Query {
@@ -16,6 +16,6 @@ const linkSchema = gql`
     type Subscription {
         _: Boolean
     } 
-`;
+`
 
-export default [linkSchema, userSchema, gameSchema, playerSchema];
+export default [linkSchema, userSchema, gameSchema, playerSchema]

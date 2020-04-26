@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express';
+import { gql } from 'apollo-server-express'
 
 export default gql`
     extend type Query {
@@ -12,9 +12,9 @@ export default gql`
             position: Int!
             gameId: ID!
         ): Boolean!
-        updateStack(
+        addToStack(
             position: Int!
-            stack: Int!
+            amount: Int!
             gameId: ID!
         ): Boolean!
         removePlayer(
