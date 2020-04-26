@@ -48,8 +48,8 @@ const gameSchema = new mongoose.Schema({
   prevPotSize: {
     type: Number
   },
-  winner: {
-    type: Number
+  winners: {
+    type: [Number]
   },
   players: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }]
 })

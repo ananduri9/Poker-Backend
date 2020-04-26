@@ -53,7 +53,7 @@ export default {
         table: [],
         prevPotSize: 0,
         state: 'notStarted',
-        winner: -1
+        winners: []
       })
       if (!game) {
         throw new UserInputError('Failed to create new game.')
@@ -146,7 +146,6 @@ export default {
         throw new UserInputError('Failed to find player user.')
       }
 
-      // const player = await models.Player.findOne({ position: position, game: gameId });
       const game = await models.Game.findOne({ _id: gameId })
       if (!game) {
         throw new UserInputError('Incorrect game id.')
@@ -189,7 +188,6 @@ export default {
         throw new UserInputError('Failed to find player user.')
       }
 
-      // const player = await models.Player.findOne({ position: position, game: gameId });
       const game = await models.Game.findOne({ _id: gameId })
       if (!game) {
         throw new UserInputError('Incorrect game id.')
@@ -234,7 +232,6 @@ export default {
         throw new UserInputError('Failed to find player user.')
       }
 
-      // const player = await models.Player.findOne({ position: position, game: gameId });
       player.isFolded = true
 
       try {

@@ -6,7 +6,7 @@ export default class Deck {
     for (var i = 2; i <= 9; i++) {
       this.suits.forEach(suit => {
         this.deck.push({
-          number: i.toString(),
+          value: i.toString(),
           suit: suit
         })
       })
@@ -14,7 +14,7 @@ export default class Deck {
     ['T', 'J', 'Q', 'K', 'A'].forEach(num => {
       this.suits.forEach(suit => {
         this.deck.push({
-          number: num,
+          value: num,
           suit: suit
         })
       })

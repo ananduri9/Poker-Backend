@@ -35,18 +35,20 @@ export default gql`
         table: [Card]
         state: String 
         curBet: Int
-        winner: Int
+        winners: [Int]
 
+        sidePots: [sidePot]
         action: Int
         players: [Player!]
     }
 
+    type sidePot {
+        value: Int
+        positions: [Int]
+    }
+
     type Card {
-        number: String
+        value: String
         suit: String
     }
 `
-
-// can make card number and suit enums in the future
-
-// state should be an enum of {preflop, flop, turn, river}

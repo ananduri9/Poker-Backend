@@ -35,12 +35,6 @@ export default {
       { username, password, venmo },
       { models, secret }
     ) => {
-      // Allow for admin users - fix this later!
-    //   let role = null
-    //   if (username === 'ananduri' || username === 'jmay') {
-    //     role = 'ADMIN'
-    //   }
-
       const user = await new models.User({
         username,
         password: await generatePasswordHash(password),

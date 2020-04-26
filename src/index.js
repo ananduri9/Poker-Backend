@@ -35,7 +35,7 @@ if (process.env.NODE_ENV === 'production') {
   console.log(buildPath)
   app.use(express.static(buildPath))
   // app.use(forceSsl)
-  app.get('/', (req, res) => {
+  app.get('*', (req, res) => {
     res.sendFile(path.join(buildPath, 'index.html'))
   })
 } else {

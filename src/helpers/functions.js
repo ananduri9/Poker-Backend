@@ -14,7 +14,7 @@ const removePlayer = async (position, gameId, models) => {
   try {
     await game.save()
   } catch (err) {
-    throw new UserInputError('Failed to update models.')
+    throw new Error('Failed to update models.')
   }
 
   try {

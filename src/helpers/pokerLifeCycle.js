@@ -2,10 +2,9 @@ import { Hand } from 'pokersolver'
 import { UserInputError } from 'apollo-server-express'
 
 import pubsub, { EVENTS } from '../subscription'
-import Deck from '../deck'
+import Deck from './deck'
 import { removePlayer } from './functions'
-
-const snooze = ms => new Promise(resolve => setTimeout(resolve, ms))
+import { snooze } from './utils'
 
 const getAction = (players, curPos, numNext) => {
   const livePlayers = players.filter(player => {
@@ -110,7 +109,7 @@ const handleAllIns = async (gameId, models) => {
       await player.save()
     } catch (err) {
       console.error(err)
-      throw new UserInputError('Failed to update models.')
+      throw new Error('Failed to update models.')
     }
   }))
 
@@ -119,7 +118,7 @@ const handleAllIns = async (gameId, models) => {
     await game.save()
   } catch (err) {
     console.error(err)
-    throw new UserInputError('Failed to update models.')
+    throw new Error('Failed to update models.')
   }
 
   return game
@@ -154,7 +153,7 @@ const findNext = async (models, startPos, gameId, act) => {
   // If everyone else is folded, this person wins
   if (act === 'fold' && alive === 1) {
     await wins(game.potSize, players[aliveIndex].position, gameId, models, 1)
-    game.winner = players[aliveIndex].position
+    await foldLosers(gameId, models)
 
     try {
       await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -162,7 +161,7 @@ const findNext = async (models, startPos, gameId, act) => {
       })
     } catch (err) {
       console.error(err)
-      throw new UserInputError('Failed to publish game.')
+      throw new Error('Failed to publish game.')
     }
 
     await snooze(6000)
@@ -182,7 +181,7 @@ const findNext = async (models, startPos, gameId, act) => {
           await game.save()
         } catch (err) {
           console.error(err)
-          throw new UserInputError('Failed to update models.')
+          throw new Error('Failed to update models.')
         }
 
         try {
@@ -191,7 +190,7 @@ const findNext = async (models, startPos, gameId, act) => {
           })
         } catch (err) {
           console.error(err)
-          throw new UserInputError('Failed to publish game.')
+          throw new Error('Failed to publish game.')
         }
 
         return true
@@ -235,13 +234,15 @@ const findNext = async (models, startPos, gameId, act) => {
         await showdown(game.potSize, showDownpositions, gameId, models)
       }
 
+      await foldLosers(gameId, models)
+
       try {
         await pubsub.publish(EVENTS.PLAYER.CREATED, {
           change: game
         })
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to publish game.')
+        throw new Error('Failed to publish game.')
       }
 
       console.log('About to snooze without halting the event loop...')
@@ -278,15 +279,15 @@ const showdown = async (potSize, positions, gameId, models) => {
   }
 
   const tableCards = game.table.map(card => {
-    return card.number + card.suit
+    return card.value + card.suit
   })
   console.log(tableCards)
   console.log(players)
 
   const playerHands = players.map(player => {
     console.log(player.hand)
-    const card1 = player.hand.card1.number + player.hand.card1.suit
-    const card2 = player.hand.card2.number + player.hand.card2.suit
+    const card1 = player.hand.card1.value + player.hand.card1.suit
+    const card2 = player.hand.card2.value + player.hand.card2.suit
     return [card1, card2, ...tableCards]
   })
 
@@ -312,7 +313,7 @@ const showdown = async (potSize, positions, gameId, models) => {
       await winner.save()
     } catch (err) {
       console.error(err)
-      throw new UserInputError('Failed to update models.')
+      throw new Error('Failed to update models.')
     }
 
     await wins(potSize, winner.position, gameId, models, numWinners)
@@ -335,7 +336,7 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
   console.log(position)
   console.log(potSize)
 
-  game.winner = position
+  game.winners.push(position)
 
   player.stack += Math.floor(potSize / numWinners)
 
@@ -344,9 +345,32 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
     await game.save()
   } catch (err) {
     console.error(err)
-    throw new UserInputError('Failed to update models.')
+    throw new Error('Failed to update models.')
   }
   return true
+}
+
+const foldLosers = async (gameId, models) => {
+  const players = await models.Player.find({ game: gameId }).sort({ position: 1 })
+  if (!players) {
+    throw new UserInputError('Failed to find players. Incorrect game id.')
+  }
+  const game = await models.Game.findOne({ _id: gameId })
+  if (!game) {
+    throw new UserInputError('Incorrect game id.')
+  }
+
+  await Promise.all(players.map(async (player) => {
+    if (!(player.position in game.s)) {
+      player.isFolded = true
+    }
+    try {
+      await player.save()
+    } catch (err) {
+      console.error(err)
+      throw new Error('Failed to update models.')
+    }
+  }))
 }
 
 const startNewHand = async (gameId, models) => {
@@ -381,7 +405,7 @@ const startNewHand = async (gameId, models) => {
       await player.save()
     } catch (err) {
       console.error(err)
-      throw new UserInputError('Failed to update models.')
+      throw new Error('Failed to update models.')
     }
   }))
 
@@ -401,13 +425,13 @@ const startNewHand = async (gameId, models) => {
   game.state = 'newRound'
   game.curBet = -1
   game.prevPotSize = 0
-  game.winner = -1
+  game.winners = []
 
   try {
     await game.save()
   } catch (err) {
     console.error(err)
-    throw new UserInputError('Failed to update models.')
+    throw new Error('Failed to update models.')
   }
 
   try {
@@ -416,7 +440,7 @@ const startNewHand = async (gameId, models) => {
     })
   } catch (err) {
     console.error(err)
-    throw new UserInputError('Failed to publish game.')
+    throw new Error('Failed to publish game.')
   }
 
   await gotoNextRound(gameId, models)
@@ -512,7 +536,7 @@ const execState = async (state, gameId, models) => {
         await game.save()
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to update models.')
+        throw new Error('Failed to update models.')
       }
 
       try {
@@ -521,7 +545,7 @@ const execState = async (state, gameId, models) => {
         })
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to publish game.')
+        throw new Error('Failed to publish game.')
       }
 
       break
@@ -536,7 +560,7 @@ const execState = async (state, gameId, models) => {
           await player.save()
         } catch (err) {
           console.error(err)
-          throw new UserInputError('Failed to update models.')
+          throw new Error('Failed to update models.')
         }
       }))
 
@@ -547,7 +571,7 @@ const execState = async (state, gameId, models) => {
         await game.save()
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to update models.')
+        throw new Error('Failed to update models.')
       }
 
       try {
@@ -556,11 +580,11 @@ const execState = async (state, gameId, models) => {
         })
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to publish game.')
+        throw new Error('Failed to publish game.')
       }
 
       if (game.allIn) {
-        await snooze(6000)
+        await snooze(4000)
         gotoNextRound(gameId, models)
       }
 
@@ -574,7 +598,7 @@ const execState = async (state, gameId, models) => {
           await player.save()
         } catch (err) {
           console.error(err)
-          throw new UserInputError('Failed to update models.')
+          throw new Error('Failed to update models.')
         }
       }))
 
@@ -585,7 +609,7 @@ const execState = async (state, gameId, models) => {
         await game.save()
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to update models.')
+        throw new Error('Failed to update models.')
       }
 
       try {
@@ -594,11 +618,11 @@ const execState = async (state, gameId, models) => {
         })
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to publish game.')
+        throw new Error('Failed to publish game.')
       }
 
       if (game.allIn) {
-        await snooze(6000)
+        await snooze(4000)
         gotoNextRound(gameId, models)
       }
 
@@ -612,7 +636,7 @@ const execState = async (state, gameId, models) => {
           await player.save()
         } catch (err) {
           console.error(err)
-          throw new UserInputError('Failed to update models.')
+          throw new Error('Failed to update models.')
         }
       }))
 
@@ -623,7 +647,7 @@ const execState = async (state, gameId, models) => {
         await game.save()
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to update models.')
+        throw new Error('Failed to update models.')
       }
 
       try {
@@ -632,7 +656,7 @@ const execState = async (state, gameId, models) => {
         })
       } catch (err) {
         console.error(err)
-        throw new UserInputError('Failed to publish game.')
+        throw new Error('Failed to publish game.')
       }
 
       if (game.allIn) {
