@@ -398,8 +398,8 @@ const startNewHand = async (gameId, models) => {
     player.hand = null
     player.showCards = null
     player.betAmount = -1
-    const card1 = game.deck.popCard()
-    const card2 = game.deck.popCard()
+    const card1 = game.deck.pop()
+    const card2 = game.deck.pop()
     player.hand = { card1: card1, card2: card2 }
     try {
       await player.save()
@@ -550,9 +550,9 @@ const execState = async (state, gameId, models) => {
 
       break
     case 'flop':
-      game.table.push(game.deck.popCard())
-      game.table.push(game.deck.popCard())
-      game.table.push(game.deck.popCard())
+      game.table.push(game.deck.pop())
+      game.table.push(game.deck.pop())
+      game.table.push(game.deck.pop())
 
       await Promise.all(players.map(async (player) => {
         player.betAmount = -1
@@ -590,7 +590,7 @@ const execState = async (state, gameId, models) => {
 
       break
     case 'turn':
-      game.table.push(game.deck.popCard())
+      game.table.push(game.deck.pop())
 
       await Promise.all(players.map(async (player) => {
         player.betAmount = -1
@@ -628,7 +628,7 @@ const execState = async (state, gameId, models) => {
 
       break
     case 'river':
-      game.table.push(game.deck.popCard())
+      game.table.push(game.deck.pop())
 
       await Promise.all(players.map(async (player) => {
         player.betAmount = -1
