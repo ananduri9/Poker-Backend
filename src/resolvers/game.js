@@ -59,6 +59,10 @@ export default {
         throw new UserInputError('Failed to create new game.')
       }
 
+      if (sBlind > bBlind) {
+        throw new UserInputError('Small blind must be smaller than big blind.')
+      }
+
       try {
         await game.save()
       } catch (err) {
@@ -145,10 +149,13 @@ export default {
       if (!player) {
         throw new UserInputError('Failed to find player user.')
       }
-
       const game = await models.Game.findOne({ _id: gameId })
       if (!game) {
         throw new UserInputError('Incorrect game id.')
+      }
+
+      if (amount < 0) {
+        throw new UserInputError('Cannot bet less than 0.')
       }
 
       player.stack -= amount

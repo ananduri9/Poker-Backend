@@ -10,3 +10,7 @@ export const isAdmin = combineResolvers(
     return role === 'ADMIN' ? skip : new ForbiddenError('Not authorized as admin')
   }
 )
+
+export const isPlayerAdmin = (player) => {
+  return player.admin ? null : new ForbiddenError('Not authorized as player admin')
+}

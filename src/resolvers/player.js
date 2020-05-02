@@ -2,6 +2,7 @@ import { UserInputError } from 'apollo-server-express'
 
 import pubsub, { EVENTS } from '../subscription'
 import { removePlayer } from '../helpers/functions'
+import { isPlayerAdmin } from './authorization'
 
 export default {
   Query: {
@@ -11,9 +12,6 @@ export default {
         throw new UserInputError('Failed to find player. Incorrect position or game id.')
       }
       return player
-    },
-    players: async (parent, args, { models }) => {
-      return models.Player.find({})
     }
   },
 
@@ -31,6 +29,10 @@ export default {
       const user = await models.User.findOne({ _id: me.id })
       if (!user) {
         throw new UserInputError('Failed to find valid user.')
+      }
+
+      if (stack <= 0) {
+        throw new UserInputError('Invalid amount for stack.')
       }
 
       let admin = false
@@ -88,6 +90,10 @@ export default {
       const player = await models.Player.findOne({ position: position, game: gameId })
       if (!player) {
         throw new UserInputError('Incorrect game id or position.')
+      }
+
+      if (amount <= 0) {
+        throw new UserInputError('Invalid amount for addition to stack.')
       }
 
       player.stack += amount
@@ -159,6 +165,8 @@ export default {
       if (!user) {
         throw new UserInputError('Failed to find valid player. Incorrect game id.')
       }
+
+      player.requestStanding = true
 
       try {
         await player.save()

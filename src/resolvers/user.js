@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken'
 import { UserInputError } from 'apollo-server-express'
+import { combineResolvers } from 'graphql-resolvers'
 import bcrypt from 'bcrypt'
+
+import { isAdmin } from './authorization'
 
 const createToken = async (user, secret) => {
   const { id, username, role, player } = user
@@ -18,15 +21,22 @@ export default {
       if (!me) {
         return null
       }
-
       return await models.User.findOne({ _id: me.id })
     },
-    user: async (parent, { id }, { models }) => {
-      return await models.User.findOne({ _id: id })
-    },
-    users: async (parent, args, { models }) => {
-      return await models.User.find({})
-    }
+
+    user: combineResolvers(
+      isAdmin,
+      async (parent, { id }, { models }) => {
+        return await models.User.findOne({ _id: id })
+      }
+    ),
+
+    users: combineResolvers(
+      isAdmin,
+      async (parent, args, { models }) => {
+        return await models.User.find({})
+      }
+    )
   },
 
   Mutation: {
@@ -35,10 +45,16 @@ export default {
       { username, password, venmo },
       { models, secret }
     ) => {
+      let role
+      if (username === 'ananduri' || username === 'jmay') {
+        role = 'ADMIN'
+      }
+
       const user = await new models.User({
         username,
         password: await generatePasswordHash(password),
-        venmo: venmo
+        venmo,
+        role
       })
       if (!user) {
         console.log('user failed')
@@ -73,15 +89,18 @@ export default {
       return { token: createToken(user, secret) }
     },
 
-    deleteUser: async (parent, { id }, { models }) => {
-      try {
-        await models.User.findOneAndRemove({ _id: id })
-      } catch (err) {
-        console.error(err)
-        throw new UserInputError('Failed to delete user')
+    deleteUser: combineResolvers(
+      isAdmin,
+      async (parent, { id }, { models }) => {
+        try {
+          await models.User.findOneAndRemove({ _id: id })
+        } catch (err) {
+          console.error(err)
+          throw new UserInputError('Failed to delete user')
+        }
+        return true
       }
-      return true
-    }
+    )
   },
 
   User: {
