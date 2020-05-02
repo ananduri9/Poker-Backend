@@ -153,7 +153,7 @@ const findNext = async (models, startPos, gameId, act) => {
   // If everyone else is folded, this person wins
   if (act === 'fold' && alive === 1) {
     await wins(game.potSize, players[aliveIndex].position, gameId, models, 1)
-    await foldLosers(gameId, models)
+    // await foldLosers(gameId, models)
 
     try {
       await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -234,7 +234,7 @@ const findNext = async (models, startPos, gameId, act) => {
         await showdown(game.potSize, showDownpositions, gameId, models)
       }
 
-      await foldLosers(gameId, models)
+      // await foldLosers(gameId, models)
 
       try {
         await pubsub.publish(EVENTS.PLAYER.CREATED, {
