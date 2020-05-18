@@ -19,6 +19,8 @@ export default gql`
         bet(amount: Int!, gameId: ID!): Boolean!
         fold(gameId: ID!): Boolean!
         allIn(gameId: ID!): Boolean!
+
+        showCards(gameId: ID!): Boolean!
     }
 
     extend type Subscription {
@@ -35,6 +37,7 @@ export default gql`
         table: [Card]
         state: String 
         curBet: Int
+        raise: Int
         winners: [Int]
 
         sidePots: [sidePot]

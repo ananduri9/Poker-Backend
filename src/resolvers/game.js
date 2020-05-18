@@ -158,14 +158,43 @@ export default {
         throw new UserInputError('Cannot bet less than 0.')
       }
 
-      player.stack -= amount
-      if (player.betAmount === -1) {
-        player.betAmount = amount
-      } else {
-        player.betAmount += amount
+      if (amount > (player.betAmount < 0 ? 0 : player.betAmount) + player.stack) {
+        throw new UserInputError('Cannot bet more than your stack.')
       }
 
-      game.potSize += amount
+      if (amount < game.curBet) {
+        throw new UserInputError('Bet must be at least as much as current bet.')
+      }
+
+      let increase
+      let curRaise
+
+      if (player.betAmount === -1) {
+        increase = amount
+        player.betAmount = amount
+      } else {
+        increase = amount - player.betAmount
+        player.betAmount = amount
+      }
+
+      if (amount > game.curBet) {
+        curRaise = amount - game.curBet
+      } else {
+        curRaise = 0
+      }
+
+      // Throw error if player tries to raise by less than min raise
+      if (curRaise > 0 && curRaise < game.raise) {
+        throw new UserInputError(`Must raise by at least the minimum raise of ${game.raise}`)
+      }
+
+      // Set min raise to new raise amount, if there is a raise
+      if (curRaise) {
+        game.raise = curRaise
+      }
+
+      player.stack -= increase
+      game.potSize += increase
       game.curBet = player.betAmount
 
       try {
@@ -204,6 +233,18 @@ export default {
         player.betAmount = player.stack
       } else {
         player.betAmount += player.stack
+      }
+
+      // If all in is a raise, adjust the game's min raise value
+      let curRaise
+      if (player.stack > game.curBet) {
+        curRaise = player.stack - game.curBet
+      } else {
+        curRaise = 0
+      }
+
+      if (curRaise) {
+        game.raise = Math.max(curRaise, game.raise)
       }
 
       game.curBet = Math.max(player.betAmount, game.curBet)
@@ -250,8 +291,47 @@ export default {
 
       findNext(models, player.position, gameId, 'fold')
       return true
-    }
+    },
 
+    showCards: async (
+      parent,
+      { postion, gameId },
+      { me, models }
+    ) => {
+      const user = await models.User.findOne({ _id: me.id })
+      if (!user) {
+        throw new UserInputError('Failed to find valid user.')
+      }
+      const player = await models.Player.findOne({ _id: user.player, game: gameId })
+      if (!player) {
+        throw new UserInputError('Failed to find player user.')
+      }
+      const game = await models.Game.findOne({ _id: gameId })
+      if (!game) {
+        throw new UserInputError('Incorrect game id.')
+      }
+
+      player.showCards = player.hand
+
+      try {
+        await player.save()
+        await game.save()
+      } catch (err) {
+        console.error(err)
+        throw new UserInputError('Failed to update models.')
+      }
+
+      try {
+        await pubsub.publish(EVENTS.PLAYER.CREATED, {
+          change: game
+        })
+      } catch (err) {
+        console.error(err)
+        throw new UserInputError('Failed to publish game.')
+      }
+
+      return true
+    }
   },
 
   Subscription: {

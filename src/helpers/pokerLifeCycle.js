@@ -44,7 +44,7 @@ const handleAllIns = async (gameId, models) => {
   console.log('playersAllIn')
   console.log(playersAllIn)
 
-  playersAlive.sort((a, b) => { // Sort alive playersin ascending order of bet amount or stack size
+  playersAlive.sort((a, b) => { // Sort alive players in ascending order of bet amount or stack size
     if (a.stack - b.stack === 0) {
       return a.betAmount - b.betAmount
     } else {
@@ -153,7 +153,7 @@ const findNext = async (models, startPos, gameId, act) => {
   // If everyone else is folded, this person wins
   if (act === 'fold' && alive === 1) {
     await wins(game.potSize, players[aliveIndex].position, gameId, models, 1)
-    // await foldLosers(gameId, models)
+    await foldLosers(gameId, models)
 
     try {
       await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -234,7 +234,7 @@ const findNext = async (models, startPos, gameId, act) => {
         await showdown(game.potSize, showDownpositions, gameId, models)
       }
 
-      // await foldLosers(gameId, models)
+      await foldLosers(gameId, models)
 
       try {
         await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -361,7 +361,7 @@ const foldLosers = async (gameId, models) => {
   }
 
   await Promise.all(players.map(async (player) => {
-    if (!(player.position in game.s)) {
+    if (!(player.position in game.winners)) {
       player.isFolded = true
     }
     try {
@@ -424,6 +424,7 @@ const startNewHand = async (gameId, models) => {
   game.table = []
   game.state = 'newRound'
   game.curBet = -1
+  game.raise = -1
   game.prevPotSize = 0
   game.winners = []
 
@@ -532,6 +533,7 @@ const execState = async (state, gameId, models) => {
       game.potSize += game.bigBlind + game.smallBlind
       game.action = getAction(players, dealer, 3)
       game.curBet = game.bigBlind
+      game.raise = game.bigBlind
       try {
         await game.save()
       } catch (err) {
@@ -567,6 +569,7 @@ const execState = async (state, gameId, models) => {
       game.action = getAction(players, dealer, 1)
       game.prevPotSize = game.potSize
       game.curBet = -1
+      game.raise = -1
       try {
         await game.save()
       } catch (err) {
@@ -605,6 +608,7 @@ const execState = async (state, gameId, models) => {
       game.action = getAction(players, dealer, 1)
       game.prevPotSize = game.potSize
       game.curBet = -1
+      game.raise = -1
       try {
         await game.save()
       } catch (err) {
@@ -643,6 +647,7 @@ const execState = async (state, gameId, models) => {
       game.action = getAction(players, dealer, 1)
       game.prevPotSize = game.potSize
       game.curBet = -1
+      game.raise = -1
       try {
         await game.save()
       } catch (err) {

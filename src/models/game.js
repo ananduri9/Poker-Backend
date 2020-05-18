@@ -48,6 +48,9 @@ const gameSchema = new mongoose.Schema({
   prevPotSize: {
     type: Number
   },
+  raise: {
+    type: Number
+  },
   winners: {
     type: [Number]
   },
