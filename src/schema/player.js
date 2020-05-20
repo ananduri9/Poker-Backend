@@ -23,8 +23,6 @@ export default gql`
         ): Boolean!
 
         player(position: Int!, gameId: ID!): Player
-        sit(position: Int!, gameId: ID!): Boolean!
-        stand(position: Int!, gameId: ID!): Boolean!
     }
 
     type Player {
@@ -36,6 +34,7 @@ export default gql`
         isAllIn: Boolean
         hand: Hand
         showCards: Hand
+        standing: Boolean
         admin: Boolean
 
         user: User

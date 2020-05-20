@@ -51,6 +51,12 @@ const gameSchema = new mongoose.Schema({
   raise: {
     type: Number
   },
+  timer: {
+    type: Number
+  },
+  timerObj: {
+    type: Object
+  },
   winners: {
     type: [Number]
   },

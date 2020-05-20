@@ -2,7 +2,6 @@ import { UserInputError } from 'apollo-server-express'
 
 import pubsub, { EVENTS } from '../subscription'
 import { removePlayer } from '../helpers/functions'
-import { isPlayerAdmin } from './authorization'
 
 export default {
   Query: {
@@ -40,14 +39,22 @@ export default {
         admin = true
       }
 
+      // If game already started, make standing and sit them next round
+      let standing = false
+      let requestSitting = false
+      if (game.state !== 'notStarted') {
+        standing = true
+        requestSitting = true
+      }
+
       const player = new models.Player({
         stack: stack,
         position: position,
         hand: null,
         betAmount: -1,
-        standing: false,
+        standing: standing,
         requestStanding: false,
-        requestSitting: false,
+        requestSitting: requestSitting,
         admin: admin,
 
         game: gameId,
@@ -96,7 +103,7 @@ export default {
         throw new UserInputError('Invalid amount for addition to stack.')
       }
 
-      player.stack += amount
+      player.addToStack = amount
 
       try {
         await player.save()
@@ -122,60 +129,6 @@ export default {
         throw new UserInputError('Failed to find player. Incorrect position or game id.')
       }
       return player
-    },
-
-    sit: async (
-      parent,
-      { gameId },
-      { me, models }
-    ) => {
-      const user = await models.User.findOne({ _id: me.id })
-      if (!user) {
-        throw new UserInputError('Failed to find valid user.')
-      }
-
-      const player = await models.Player.findOne({ _id: user.player, game: gameId })
-      if (!user) {
-        throw new UserInputError('Failed to find valid player. Incorrect game id.')
-      }
-
-      player.requestSitting = true
-
-      try {
-        await player.save()
-      } catch (err) {
-        console.error(err)
-        throw new UserInputError('Failed to update models.')
-      }
-
-      return true
-    },
-
-    stand: async (
-      parent,
-      { gameId },
-      { me, models }
-    ) => {
-      const user = await models.User.findOne({ _id: me.id })
-      if (!user) {
-        throw new UserInputError('Failed to find valid user.')
-      }
-
-      const player = await models.Player.findOne({ _id: user.player, game: gameId })
-      if (!user) {
-        throw new UserInputError('Failed to find valid player. Incorrect game id.')
-      }
-
-      player.requestStanding = true
-
-      try {
-        await player.save()
-      } catch (err) {
-        console.error(err)
-        throw new UserInputError('Failed to update models.')
-      }
-
-      return true
     }
   },
 

@@ -24,6 +24,40 @@ const getIndex = (players, curPos, numNext) => {
   return (curIndex + numNext) % players.length
 }
 
+// check if possible, otherwise fold
+const doDefaultAction = (models, gameId) => {
+  const game = models.Game.findOne({ _id: gameId })
+  if (!game) {
+    throw new UserInputError('Incorrect game id.')
+  }
+  const player = models.Player.findOne({ position: game.action, game: gameId })
+  if (!player) {
+    throw new UserInputError('Failed to find player user.')
+  }
+  let action
+
+  if (game.curBet <= 0) {
+    // check
+    player.betAmount = 0
+    game.curBet = 0
+    action = 'bet'
+  } else {
+    // fold
+    player.isFolded = true
+    action = 'fold'
+  }
+
+  try {
+    player.save()
+    game.save()
+  } catch (err) {
+    console.error(err)
+    throw new UserInputError('Failed to update models.')
+  }
+
+  findNext(models, player.position, gameId, action)
+}
+
 const handleAllIns = async (gameId, models) => {
   const game = await models.Game.findOne({ _id: gameId })
   if (!game) {
@@ -191,6 +225,18 @@ const findNext = async (models, startPos, gameId, act) => {
         } catch (err) {
           console.error(err)
           throw new Error('Failed to publish game.')
+        }
+
+        // set timeout for player's turn
+        const timer = game.timer * 100
+        const timeoutObj = setTimeout(doDefaultAction, timer, models, gameId)
+        game.timeoutObj = timeoutObj
+
+        try {
+          await game.save()
+        } catch (err) {
+          console.error(err)
+          throw new Error('Failed to update models.')
         }
 
         return true
@@ -392,6 +438,16 @@ const startNewHand = async (gameId, models) => {
     if (player.requestSitting) {
       player.standing = false
     }
+    // Update stack if requested
+    if (player.addToStack) {
+      player.stack += player.addToStack
+      player.addToStack = 0
+    }
+    // Make standing if player has nonpositve stack
+    if (player.stack <= 0) {
+      player.stack = 0
+      player.standing = true
+    }
     player.isFolded = false
     player.isAllIn = false
     player.handleAllIn = false
@@ -410,11 +466,11 @@ const startNewHand = async (gameId, models) => {
   }))
 
   // Remove player if stack went to 0 - make player standing if stack goes to 0
-  for (const player of players) {
-    if (player.stack <= 0) {
-      await removePlayer(player.position, gameId, models)
-    }
-  }
+  // for (const player of players) {
+  //   if (player.stack <= 0) {
+  //     await removePlayer(player.position, gameId, models)
+  //   }
+  // }
 
   game.potSize = 0
   game.sidePot = []
@@ -519,6 +575,8 @@ const execState = async (state, gameId, models) => {
   const dealer = game.dealer
   const bb = players[getIndex(players, dealer, 2)]
   const sb = players[getIndex(players, dealer, 1)]
+  const timer = game.timer * 100
+  let timeoutObj
 
   switch (state) {
     case 'preflop':
@@ -548,6 +606,16 @@ const execState = async (state, gameId, models) => {
       } catch (err) {
         console.error(err)
         throw new Error('Failed to publish game.')
+      }
+
+      timeoutObj = setTimeout(doDefaultAction, timer, models, gameId)
+      game.timeoutObj = timeoutObj
+
+      try {
+        await game.save()
+      } catch (err) {
+        console.error(err)
+        throw new Error('Failed to update models.')
       }
 
       break
@@ -591,6 +659,16 @@ const execState = async (state, gameId, models) => {
         gotoNextRound(gameId, models)
       }
 
+      timeoutObj = setTimeout(doDefaultAction, timer, models, gameId)
+      game.timeoutObj = timeoutObj
+
+      try {
+        await game.save()
+      } catch (err) {
+        console.error(err)
+        throw new Error('Failed to update models.')
+      }
+
       break
     case 'turn':
       game.table.push(game.deck.pop())
@@ -630,6 +708,16 @@ const execState = async (state, gameId, models) => {
         gotoNextRound(gameId, models)
       }
 
+      timeoutObj = setTimeout(doDefaultAction, timer, models, gameId)
+      game.timeoutObj = timeoutObj
+
+      try {
+        await game.save()
+      } catch (err) {
+        console.error(err)
+        throw new Error('Failed to update models.')
+      }
+
       break
     case 'river':
       game.table.push(game.deck.pop())
@@ -666,6 +754,16 @@ const execState = async (state, gameId, models) => {
 
       if (game.allIn) {
         findNext(models, game.dealer, gameId, 'allIn') // this should be refactored
+      }
+
+      timeoutObj = setTimeout(doDefaultAction, timer, models, gameId)
+      game.timeoutObj = timeoutObj
+
+      try {
+        await game.save()
+      } catch (err) {
+        console.error(err)
+        throw new Error('Failed to update models.')
       }
 
       break

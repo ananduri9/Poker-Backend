@@ -36,6 +36,9 @@ const playerSchema = new mongoose.Schema({
   requestSitting: {
     type: Boolean
   },
+  addToStack: {
+    type: Number
+  },
   admin: {
     type: Boolean
   },

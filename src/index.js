@@ -26,13 +26,10 @@ const credentials = { key: privateKey, cert: certificate }
 // };
 
 const app = express()
-console.log('outsided')
 console.log(process.env.NODE_ENV)
 
 if (process.env.NODE_ENV === 'production') {
-  console.log('productionijiji')
   const buildPath = path.join(__dirname, '../client/build/')
-  console.log(buildPath)
   app.use(express.static(buildPath))
   // app.use(forceSsl)
   app.get('*', (req, res) => {

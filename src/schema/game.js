@@ -10,6 +10,7 @@ export default gql`
         createGame(
             sBlind: Int!,
             bBlind: Int!,
+            timer: Int,
         ): ID!
         joinGame(
             gameId: ID!
@@ -21,6 +22,10 @@ export default gql`
         allIn(gameId: ID!): Boolean!
 
         showCards(gameId: ID!): Boolean!
+        updateTimer(gameId: ID!, timer: Int!): Boolean!
+
+        sit(gameId: ID!): Boolean!
+        stand(gameId: ID!): Boolean!
     }
 
     extend type Subscription {

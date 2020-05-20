@@ -41,7 +41,7 @@ export default {
   Mutation: {
     createGame: async (
       parent,
-      { sBlind, bBlind },
+      { sBlind, bBlind, timer },
       { models }
     ) => {
       const game = new models.Game({
@@ -53,7 +53,8 @@ export default {
         table: [],
         prevPotSize: 0,
         state: 'notStarted',
-        winners: []
+        winners: [],
+        timer: timer || 45
       })
       if (!game) {
         throw new UserInputError('Failed to create new game.')
@@ -154,6 +155,8 @@ export default {
         throw new UserInputError('Incorrect game id.')
       }
 
+      clearTimeout(game.timeoutObj)
+
       if (amount < 0) {
         throw new UserInputError('Cannot bet less than 0.')
       }
@@ -214,7 +217,6 @@ export default {
       { position, gameId },
       { me, models }
     ) => {
-      console.log('ALLINNNNN')
       const user = await models.User.findOne({ _id: me.id })
       if (!user) {
         throw new UserInputError('Failed to find valid user.')
@@ -223,11 +225,12 @@ export default {
       if (!player) {
         throw new UserInputError('Failed to find player user.')
       }
-
       const game = await models.Game.findOne({ _id: gameId })
       if (!game) {
         throw new UserInputError('Incorrect game id.')
       }
+
+      clearTimeout(game.timeoutObj)
 
       if (player.betAmount === -1) {
         player.betAmount = player.stack
@@ -279,11 +282,18 @@ export default {
       if (!player) {
         throw new UserInputError('Failed to find player user.')
       }
+      const game = await models.Game.findOne({ _id: gameId })
+      if (!game) {
+        throw new UserInputError('Incorrect game id.')
+      }
+
+      clearTimeout(game.timeoutObj)
 
       player.isFolded = true
 
       try {
         await player.save()
+        await game.save()
       } catch (err) {
         console.error(err)
         throw new UserInputError('Failed to update models.')
@@ -328,6 +338,80 @@ export default {
       } catch (err) {
         console.error(err)
         throw new UserInputError('Failed to publish game.')
+      }
+
+      return true
+    },
+
+    updateTimer: async (
+      parent,
+      { gameId, timer },
+      { me, models }
+    ) => {
+      const game = await models.Game.findOne({ _id: gameId })
+      if (!game) {
+        throw new UserInputError('Incorrect game id.')
+      }
+
+      game.timer = timer
+
+      try {
+        await game.save()
+      } catch (err) {
+        console.error(err)
+        throw new UserInputError('Failed to update models.')
+      }
+
+      return true
+    },
+
+    sit: async (
+      parent,
+      { gameId },
+      { me, models }
+    ) => {
+      const user = await models.User.findOne({ _id: me.id })
+      if (!user) {
+        throw new UserInputError('Failed to find valid user.')
+      }
+      const player = await models.Player.findOne({ _id: user.player, game: gameId })
+      if (!player) {
+        throw new UserInputError('Failed to find player user.')
+      }
+
+      player.requestSitting = true
+
+      try {
+        await player.save()
+      } catch (err) {
+        console.error(err)
+        throw new UserInputError('Failed to update models.')
+      }
+
+      return true
+    },
+
+    stand: async (
+      parent,
+      { gameId },
+      { me, models }
+    ) => {
+      const user = await models.User.findOne({ _id: me.id })
+      if (!user) {
+        throw new UserInputError('Failed to find valid user.')
+      }
+      const player = await models.Player.findOne({ _id: user.player, game: gameId })
+      if (!player) {
+        throw new UserInputError('Failed to find player user.')
+      }
+
+      player.requestStanding = true
+
+      try {
+        await player.save()
+      } catch (err) {
+        console.error(err)
+        throw new UserInputError('Failed to update models.')
       }
 
       return true
