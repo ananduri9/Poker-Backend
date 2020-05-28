@@ -41,7 +41,7 @@ export default {
   Mutation: {
     createGame: async (
       parent,
-      { sBlind, bBlind, timer },
+      { sBlind, bBlind },
       { models }
     ) => {
       const game = new models.Game({
@@ -54,7 +54,7 @@ export default {
         prevPotSize: 0,
         state: 'notStarted',
         winners: [],
-        timer: timer || 45
+        timer: 45
       })
       if (!game) {
         throw new UserInputError('Failed to create new game.')
@@ -83,7 +83,7 @@ export default {
       return game.id
     },
 
-    joinGame: async (
+    joinGame: async ( // For establishing link to subscription
       parent,
       { gameId },
       { models }
@@ -105,7 +105,7 @@ export default {
       return true
     },
 
-    startGame: async (
+    startGame: async ( // game should be in not started state
       parent,
       { gameId },
       { me, models }
@@ -137,7 +137,7 @@ export default {
       return true
     },
 
-    bet: async (
+    bet: async ( // me player should match player with action
       parent,
       { position, amount, gameId },
       { me, models }
@@ -212,7 +212,7 @@ export default {
       return true
     },
 
-    allIn: async (
+    allIn: async ( // me player should match player with action
       parent,
       { position, gameId },
       { me, models }
@@ -269,7 +269,7 @@ export default {
       return true
     },
 
-    fold: async (
+    fold: async ( // me player should match player with action
       parent,
       { position, gameId },
       { me, models }
@@ -303,7 +303,7 @@ export default {
       return true
     },
 
-    showCards: async (
+    showCards: async ( // is me
       parent,
       { postion, gameId },
       { me, models }
@@ -343,7 +343,7 @@ export default {
       return true
     },
 
-    updateTimer: async (
+    updateTimer: async ( // only changeable by admin player
       parent,
       { gameId, timer },
       { me, models }
@@ -365,7 +365,7 @@ export default {
       return true
     },
 
-    sit: async (
+    sit: async ( // is me
       parent,
       { gameId },
       { me, models }
@@ -391,7 +391,7 @@ export default {
       return true
     },
 
-    stand: async (
+    stand: async ( // is me
       parent,
       { gameId },
       { me, models }

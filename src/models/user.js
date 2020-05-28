@@ -29,7 +29,6 @@ userSchema.statics.findByLogin = async function (username) {
 }
 
 userSchema.methods.validatePassword = async function (password) {
-  console.log('this.password')
   return await bcrypt.compare(password, this.password)
 }
 

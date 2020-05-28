@@ -3,7 +3,6 @@ import { UserInputError } from 'apollo-server-express'
 
 import pubsub, { EVENTS } from '../subscription'
 import Deck from './deck'
-import { removePlayer } from './functions'
 import { snooze } from './utils'
 
 const getAction = (players, curPos, numNext) => {
@@ -187,7 +186,8 @@ const findNext = async (models, startPos, gameId, act) => {
   // If everyone else is folded, this person wins
   if (act === 'fold' && alive === 1) {
     await wins(game.potSize, players[aliveIndex].position, gameId, models, 1)
-    await foldLosers(gameId, models)
+    game = await foldLosers(gameId, models)
+    game.action = -1
 
     try {
       await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -271,6 +271,7 @@ const findNext = async (models, startPos, gameId, act) => {
         console.log('positions')
         console.log(positions)
         await showdown(size, positions, gameId, models)
+        console.log('game potsize')
         console.log(game.potSize)
       }
 
@@ -280,7 +281,8 @@ const findNext = async (models, startPos, gameId, act) => {
         await showdown(game.potSize, showDownpositions, gameId, models)
       }
 
-      await foldLosers(gameId, models)
+      game = await foldLosers(gameId, models)
+      game.action = -1
 
       try {
         await pubsub.publish(EVENTS.PLAYER.CREATED, {
@@ -291,9 +293,7 @@ const findNext = async (models, startPos, gameId, act) => {
         throw new Error('Failed to publish game.')
       }
 
-      console.log('About to snooze without halting the event loop...')
       await snooze(6000)
-      console.log('done!')
 
       // Start new hand from beginning
       await startNewHand(gameId, models)
@@ -327,11 +327,8 @@ const showdown = async (potSize, positions, gameId, models) => {
   const tableCards = game.table.map(card => {
     return card.value + card.suit
   })
-  console.log(tableCards)
-  console.log(players)
 
   const playerHands = players.map(player => {
-    console.log(player.hand)
     const card1 = player.hand.card1.value + player.hand.card1.suit
     const card2 = player.hand.card2.value + player.hand.card2.suit
     return [card1, card2, ...tableCards]
@@ -351,8 +348,6 @@ const showdown = async (potSize, positions, gameId, models) => {
       return JSON.stringify(player.fullHand.sort()) === JSON.stringify(winners.sort())
     })
 
-    console.log('alo')
-    console.log(winner.fullHand)
     winner.showCards = winner.hand
 
     try {
@@ -378,10 +373,6 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
     throw new UserInputError('Incorrect game id.')
   }
 
-  console.log('position of winner')
-  console.log(position)
-  console.log(potSize)
-
   game.winners.push(position)
 
   player.stack += Math.floor(potSize / numWinners)
@@ -397,7 +388,7 @@ const wins = async (potSize, position, gameId, models, numWinners) => {
 }
 
 const foldLosers = async (gameId, models) => {
-  const players = await models.Player.find({ game: gameId }).sort({ position: 1 })
+  const players = await models.Player.find({ game: gameId, standing: false }).sort({ position: 1 })
   if (!players) {
     throw new UserInputError('Failed to find players. Incorrect game id.')
   }
@@ -407,7 +398,7 @@ const foldLosers = async (gameId, models) => {
   }
 
   await Promise.all(players.map(async (player) => {
-    if (!(player.position in game.winners)) {
+    if (!game.winners.includes(player.position)) {
       player.isFolded = true
     }
     try {
@@ -417,6 +408,8 @@ const foldLosers = async (gameId, models) => {
       throw new Error('Failed to update models.')
     }
   }))
+
+  return game
 }
 
 const startNewHand = async (gameId, models) => {

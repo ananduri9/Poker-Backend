@@ -89,7 +89,7 @@ export default {
       return true
     },
 
-    addToStack: async (
+    addToStack: async ( // is me
       parent,
       { position, amount, gameId },
       { models }
@@ -115,7 +115,7 @@ export default {
       return true
     },
 
-    removePlayer: async (
+    removePlayer: async ( // should be player admin
       parent,
       { position, gameId },
       { models }

@@ -57,7 +57,6 @@ export default {
         role
       })
       if (!user) {
-        console.log('user failed')
         throw new UserInputError('Sign up failed.')
       }
 

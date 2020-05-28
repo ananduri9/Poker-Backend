@@ -9,8 +9,7 @@ export default gql`
     extend type Mutation {
         createGame(
             sBlind: Int!,
-            bBlind: Int!,
-            timer: Int,
+            bBlind: Int!
         ): ID!
         joinGame(
             gameId: ID!
