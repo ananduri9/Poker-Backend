@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@babel/plugin-proposal-class-properties": "^7.8.3",
-    "apollo-server": "^2.11.0",
+    "apollo-server": "^2.25.4",
     "apollo-server-express": "^2.11.0",
     "bcrypt": "^4.0.1",
     "core-js": "^3.6.4",
